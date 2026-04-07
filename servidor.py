@@ -9,9 +9,9 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # --- BANCO DE DADOS DE LICENÇAS VENDIDAS ---
 # Sempre que vender o jogo, você adiciona uma linha aqui com um código único
 LICENCAS_ATIVAS = {
-    "meu-acesso-vip": "Sr. Rodrigo (Proprietário)",
-    "licenca-dra-ana-xyz": "Dra. Ana (Cliente 1)",
-    "licenca-dr-carlos-abc": "Dr. Carlos (Cliente 2)"
+    "acesso-proprietario": "Sr. Rodrigo (Proprietário)",
+    "licenca-dra-Bruna-Ligoski": "Dra. Bruna Ligoski",
+    "licenca-teste": "Dr. Carlos (Cliente 2)"
 }
 
 salas = {}
@@ -24,7 +24,7 @@ def index():
 
 
 # Rota Única do Terapeuta (O link que você vai vender)
-@app.route('/terapeuta/<id_licenca>')
+@app.route('/<id_licenca>')
 def painel_terapeuta(id_licenca):
     if id_licenca not in LICENCAS_ATIVAS:
         return "Acesso Negado: Licença não encontrada ou expirada.", 403
