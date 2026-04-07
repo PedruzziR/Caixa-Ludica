@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caixa Lúdica - Sessão</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="aviso-rotacao">
+        <h2>🔄 Por favor, gire seu aparelho</h2>
+        <p>Para a melhor experiência, a Caixa Lúdica deve ser usada na horizontal.</p>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const SALA_ID = "{{ id_sala }}";
+        const TIPO_USUARIO = "{{ tipo }}";
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+
+    <script src="/static/game.js"></script>
+</body>
+</html>

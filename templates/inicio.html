@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Clínica - Caixa Lúdica</title>
+    <style>
+        body { 
+            background-color: #1e272e; color: white; font-family: Arial; 
+            display: flex; flex-direction: column; align-items: center; 
+            justify-content: center; height: 100vh; margin: 0; text-align: center;
+        }
+        button {
+            padding: 20px 40px; font-size: 22px; font-weight: bold;
+            background-color: #a06e32; color: white; border: none;
+            border-radius: 8px; cursor: pointer; transition: 0.2s; margin-top: 20px;
+        }
+        button:hover { background-color: #c98e46; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    <img src="/static/assets/logo.jpg" style="width: 150px; border-radius: 50%; border: 3px solid #a06e32; margin-bottom: 20px;">
+    <h1>Travessias Infantis</h1>
+    <h3 style="color: #f5deb3;">Bem-vindo(a), {{ nome_terapeuta }}</h3>
+    <p>Clique abaixo para gerar o link de seu paciente.</p>
+    <button onclick="window.location.href='/criar_sessao/{{ id_licenca }}'">Iniciar Nova Sessão</button>
+</body>
+</html>
