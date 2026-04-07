@@ -39,7 +39,7 @@ def criar_sessao(id_licenca):
         return "Acesso Negado.", 403
 
     codigo_unico = str(uuid.uuid4())[:8]
-    id_sala = f"TravessiasInfantis-{codigo_unico}"
+    id_sala = f"{id_licenca}-{codigo_unico}"
 
     salas[id_sala] = {"estado_tabuleiro": []}
     return redirect(url_for('sessao', id_sala=id_sala, tipo='anfitriao'))
