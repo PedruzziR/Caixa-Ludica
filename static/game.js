@@ -649,8 +649,8 @@ function desenharTela() {
                 ctx.beginPath(); ctx.arc(pRect.x + pRect.w/2, pRect.y + pRect.h/2, pRect.w/2, 0, Math.PI*2);
                 ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.strokeStyle = '#646464'; ctx.lineWidth = 2; ctx.stroke();
             }
-            // Aumentamos o tamanho visual do ícone de rotação para acompanhar o toque (antes 15, agora 25)
-            desenharIconeRotacao(ctx, rectItem.x + rectItem.w/2, rectItem.y - 30, 16);
+            // Aumentamos o tamanho visual do ícone de rotação para acompanhar o toque
+            desenharIconeRotacao(ctx, rectItem.x + rectItem.w/2, rectItem.y - 30, 14);
         }
         if (abaAtual === "Casa Inteira") ctx.restore();
     }
