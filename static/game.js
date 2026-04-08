@@ -12,7 +12,7 @@ canvas.height = ALTURA_V;
 const TAMANHO_COMODO = [450, 450];
 const TAMANHO_PLANTA = [150, 150];
 const TAMANHO_BAU = 150;
-const TAMANHO_PONTO_CONTROLE = 35; // <--- AUMENTADO PARA O TOQUE DO DEDO
+const TAMANHO_PONTO_CONTROLE = 16; // <--- AUMENTADO PARA O TOQUE DO DEDO
 const ESPESSURA_PAREDE = 16;
 
 const ALTURA_BAU = 225;
@@ -650,7 +650,7 @@ function desenharTela() {
                 ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.strokeStyle = '#646464'; ctx.lineWidth = 2; ctx.stroke();
             }
             // Aumentamos o tamanho visual do ícone de rotação para acompanhar o toque (antes 15, agora 25)
-            desenharIconeRotacao(ctx, rectItem.x + rectItem.w/2, rectItem.y - 30, 25);
+            desenharIconeRotacao(ctx, rectItem.x + rectItem.w/2, rectItem.y - 30, 16);
         }
         if (abaAtual === "Casa Inteira") ctx.restore();
     }
