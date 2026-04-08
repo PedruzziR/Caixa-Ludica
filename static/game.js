@@ -12,7 +12,7 @@ canvas.height = ALTURA_V;
 const TAMANHO_COMODO = [450, 450];
 const TAMANHO_PLANTA = [150, 150];
 const TAMANHO_BAU = 150;
-const TAMANHO_PONTO_CONTROLE = 16; // <--- AUMENTADO PARA O TOQUE DO DEDO
+const TAMANHO_PONTO_CONTROLE = 16;
 const ESPESSURA_PAREDE = 16;
 
 const ALTURA_BAU = 225;
@@ -64,7 +64,7 @@ let propY = 0.5;
 // =======================================================
 class MiniaturaCena {
     constructor(nome, img, proporcaoAspecto, comodoInicial, xLocal, yLocal) {
-        this.nome = nome;
+        this.nome = nome; // Guarda o nome do objeto para enviar pela internet
         this.img = img;
         this.proporcaoAspecto = proporcaoAspecto;
         this.comodo = comodoInicial;
@@ -159,6 +159,7 @@ class MiniaturaCena {
 // =======================================================
 const socket = io();
 
+// Atualiza a tela de todos quando recebemos um movimento do servidor
 socket.on('atualizar_tabuleiro', (estado) => {
     listaMiniaturasCena = estado.map(d => {
         const bauItem = itensBau.find(i => i.nome === d.nome);
@@ -172,26 +173,31 @@ socket.on('atualizar_tabuleiro', (estado) => {
         return m;
     }).filter(i => i !== null);
 
+    // Solta os itens para não dar conflito visual
     itemArrastado = null;
     itemSelecionado = null;
     itemRedimensionando = null;
     itemRotacionando = null;
 });
 
+// Ouve a ordem do servidor para encerrar a sessão
 socket.on('sessao_encerrada', () => {
     if (TIPO_USUARIO === 'convidado') {
+        // Se for o paciente, apaga o jogo inteiro e mostra a mensagem final
         document.body.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #1e272e; color: white; font-family: Arial;">
                 <img src="/static/assets/logo.jpg" style="width: 150px; border-radius: 50%; border: 3px solid #a06e32; margin-bottom: 20px;">
                 <h1>Sessão Encerrada</h1>
-                <p>A sessão de hoje foi encerrada. Até a próxima!</p>
+                <p>O terapeuta encerrou a sessão de hoje. Até a próxima!</p>
             </div>
         `;
     } else {
+        // Se for o terapeuta, redireciona ele de volta para a recepção (para gerar um novo link)
         window.location.href = '/';
     }
 });
 
+// Envia a arrumação atual para o servidor
 function sincronizarServidor() {
     const estado = listaMiniaturasCena.map(item => ({
         nome: item.nome,
@@ -222,6 +228,7 @@ let scrollBau = 0;
 const espacamento = 170;
 const xInicial = 120;
 
+// Garante que o multiplayer só conecte DEPOIS que todas as imagens baixarem
 nomesArquivos.forEach((nome, index) => {
     const img = new Image();
     img.src = `/static/assets/${nome}.png`;
@@ -230,6 +237,8 @@ nomesArquivos.forEach((nome, index) => {
         imagensCarregadas++;
         if(imagensCarregadas === nomesArquivos.length) {
             itensBau.sort((a, b) => a.indexOriginal - b.indexOriginal);
+
+            // Conecta na sala!
             socket.emit('entrar_na_sala', { sala: SALA_ID });
             desenharTela();
         }
@@ -245,7 +254,7 @@ const botoesAcao = {
 };
 
 // =======================================================
-// 6. EVENTOS DO MOUSE E TOUCH (Com Sincronização)
+// 6. EVENTOS DO MOUSE AND TOUCH (Com Sincronização)
 // =======================================================
 function collidePoint(rect, px, py) {
     return px >= rect.x && px <= rect.x + rect.w && py >= rect.y && py <= rect.y + rect.h;
@@ -266,6 +275,7 @@ function getMousePos(evt) {
     let clientX = evt.clientX;
     let clientY = evt.clientY;
 
+    // Traduz o toque na tela (touch) para coordenadas de mouse
     if (evt.touches && evt.touches.length > 0) {
         clientX = evt.touches[0].clientX;
         clientY = evt.touches[0].clientY;
@@ -282,50 +292,11 @@ function getMousePos(evt) {
 
 // --- 1. INICIAR INTERAÇÃO (Clique ou Toque na tela) ---
 function iniciarInteracao(e) {
-    if(e.type === 'touchstart') e.preventDefault();
+    if(e.type === 'touchstart') e.preventDefault(); // Previne zoom e scroll nativo
     const pos = getMousePos(e);
 
+    // Aceita botão esquerdo do mouse OU toque na tela
     if (e.type === 'touchstart' || e.button === 0) {
-
-        // --- 1º PRIORIDADE: VERIFICAR PONTOS DE CONTROLE ---
-        if (itemSelecionado && !itemSelecionado.travado) {
-            const pontos = itemSelecionado.obterRectsPontosControle(abaAtual);
-            const rectItem = itemSelecionado.obterRectTela(abaAtual);
-            let clicouEmPonto = false;
-
-            for (const [pType, pRect] of Object.entries(pontos)) {
-                // Aumentamos a área de colisão invisível do ponto para o touch
-                const areaToquePonto = { x: pRect.x - 10, y: pRect.y - 10, w: pRect.w + 20, h: pRect.h + 20 };
-
-                if (collidePoint(areaToquePonto, pos.x, pos.y)) {
-                    itemRedimensionando = itemSelecionado;
-                    pontoControleAtivo = pType;
-                    clicouEmPonto = true;
-
-                    if (pType === "top_left") posAncoraTela = {x: rectItem.x + rectItem.w, y: rectItem.y + rectItem.h};
-                    else if (pType === "top_right") posAncoraTela = {x: rectItem.x, y: rectItem.y + rectItem.h};
-                    else if (pType === "bottom_left") posAncoraTela = {x: rectItem.x + rectItem.w, y: rectItem.y};
-                    else if (pType === "bottom_right") posAncoraTela = {x: rectItem.x, y: rectItem.y};
-                    break;
-                }
-            }
-            if (clicouEmPonto) return;
-
-            // --- 2º PRIORIDADE: VERIFICAR ROTAÇÃO ---
-            const rectItemRot = itemSelecionado.obterRectTela(abaAtual);
-            const cx = rectItemRot.x + rectItemRot.w / 2;
-            const cy = rectItemRot.y - 30; // Aumentamos a distância
-            const dist = Math.hypot(pos.x - cx, pos.y - cy);
-
-            if (dist <= 30) { // Raio de toque aumentado
-                itemRotacionando = itemSelecionado;
-                const cCentro = {x: rectItemRot.x + rectItemRot.w/2, y: rectItemRot.y + rectItemRot.h/2};
-                offsetAnguloMouse = Math.atan2(pos.y - cCentro.y, pos.x - cCentro.x) * 180 / Math.PI;
-                return;
-            }
-        }
-
-        // --- 3º PRIORIDADE: NAVEGAÇÃO E BOTÕES ---
         let clicouNav = false;
         if (abaAtual === "Casa Inteira") {
             for (const [nome, quad] of Object.entries(quadrantes)) {
@@ -374,6 +345,43 @@ function iniciarInteracao(e) {
         }
         if (clicouBotaoAcao) return;
 
+        let clicouRot = false;
+        if (itemSelecionado && !itemSelecionado.travado) {
+            const rectItem = itemSelecionado.obterRectTela(abaAtual);
+            const cx = rectItem.x + rectItem.w / 2;
+            const cy = rectItem.y - 20;
+            const dist = Math.hypot(pos.x - cx, pos.y - cy);
+
+            if (dist <= 15) {
+                itemRotacionando = itemSelecionado;
+                clicouRot = true;
+                const cCentro = {x: rectItem.x + rectItem.w/2, y: rectItem.y + rectItem.h/2};
+                offsetAnguloMouse = Math.atan2(pos.y - cCentro.y, pos.x - cCentro.x) * 180 / Math.PI;
+            }
+        }
+        if (clicouRot) return;
+
+        let clicouPonto = false;
+        if (itemSelecionado && !itemSelecionado.travado) {
+            const pontos = itemSelecionado.obterRectsPontosControle(abaAtual);
+            const rectItem = itemSelecionado.obterRectTela(abaAtual);
+
+            for (const [pType, pRect] of Object.entries(pontos)) {
+                if (collidePoint(pRect, pos.x, pos.y)) {
+                    itemRedimensionando = itemSelecionado;
+                    pontoControleAtivo = pType;
+                    clicouPonto = true;
+
+                    if (pType === "top_left") posAncoraTela = {x: rectItem.x + rectItem.w, y: rectItem.y + rectItem.h};
+                    else if (pType === "top_right") posAncoraTela = {x: rectItem.x, y: rectItem.y + rectItem.h};
+                    else if (pType === "bottom_left") posAncoraTela = {x: rectItem.x + rectItem.w, y: rectItem.y};
+                    else if (pType === "bottom_right") posAncoraTela = {x: rectItem.x, y: rectItem.y};
+                    break;
+                }
+            }
+        }
+        if (clicouPonto) return;
+
         let pegou = false;
         for (let i = listaMiniaturasCena.length - 1; i >= 0; i--) {
             const item = listaMiniaturasCena[i];
@@ -416,7 +424,7 @@ function iniciarInteracao(e) {
 
 // --- 2. MOVER INTERAÇÃO (Arrastar, Girar, Escalar) ---
 function moverInteracao(e) {
-    if(e.type === 'touchmove') e.preventDefault();
+    if(e.type === 'touchmove') e.preventDefault(); // Previne scroll da tela ao arrastar móveis
     const pos = getMousePos(e);
 
     if (itemRotacionando && !itemRotacionando.travado) {
@@ -502,13 +510,18 @@ function moverInteracao(e) {
 function finalizarInteracao(e) {
     let teveAcao = (itemArrastado || itemRedimensionando || itemRotacionando);
 
+    // Lógica da Lixeira (Baú): Se estiver arrastando um item e soltá-lo na área do Baú
     if (itemArrastado) {
         const rect = itemArrastado.obterRectTela(abaAtual);
+
+        // Verifica se o centro do objeto passou da linha superior do Baú
         if (rect.y + (rect.h / 2) >= Y_BAU) {
+            // Remove o item da lista de objetos na cena
             const index = listaMiniaturasCena.indexOf(itemArrastado);
             if (index > -1) {
                 listaMiniaturasCena.splice(index, 1);
             }
+            // Se o item deletado era o que estava selecionado, limpa a seleção
             if (itemSelecionado === itemArrastado) {
                 itemSelecionado = null;
             }
@@ -520,20 +533,25 @@ function finalizarInteracao(e) {
     pontoControleAtivo = null;
     itemRotacionando = null;
 
+    // Sincroniza com o paciente (seja um movimento normal ou a exclusão no baú)
     if (teveAcao) {
         sincronizarServidor();
     }
 }
 
 // --- CONECTANDO OS EVENTOS AO CANVAS ---
+// Mouse
 canvas.addEventListener('mousedown', iniciarInteracao);
 canvas.addEventListener('mousemove', moverInteracao);
 window.addEventListener('mouseup', finalizarInteracao);
 
+// Touch (Celulares e Tablets)
 canvas.addEventListener('touchstart', iniciarInteracao, {passive: false});
 canvas.addEventListener('touchmove', moverInteracao, {passive: false});
 window.addEventListener('touchend', finalizarInteracao);
 
+
+// SINCRONIZA AO DELETAR COM BOTÃO DIREITO (Mouse)
 canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     const pos = getMousePos(e);
@@ -548,6 +566,7 @@ canvas.addEventListener('contextmenu', (e) => {
     }
 });
 
+// SCROLL DO BAÚ (Mouse)
 canvas.addEventListener('wheel', (evento) => {
     const pos = getMousePos(evento);
     if (pos.y >= Y_BAU) {
@@ -649,8 +668,7 @@ function desenharTela() {
                 ctx.beginPath(); ctx.arc(pRect.x + pRect.w/2, pRect.y + pRect.h/2, pRect.w/2, 0, Math.PI*2);
                 ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.strokeStyle = '#646464'; ctx.lineWidth = 2; ctx.stroke();
             }
-            // Aumentamos o tamanho visual do ícone de rotação para acompanhar o toque
-            desenharIconeRotacao(ctx, rectItem.x + rectItem.w/2, rectItem.y - 30, 14);
+            desenharIconeRotacao(ctx, rectItem.x + rectItem.w/2, rectItem.y - 20, 15);
         }
         if (abaAtual === "Casa Inteira") ctx.restore();
     }
@@ -666,15 +684,28 @@ function desenharTela() {
         }
     }
 
+    // --- DESENHO DO BAÚ NO FUNDO DA TELA ---
+    // 1. Fundo total de madeira escura texturizada (imagem ou cor fallback escura combinando)
     if (imgFundoBau.complete && imgFundoBau.naturalWidth !== 0) {
         ctx.drawImage(imgFundoBau, 0, Y_BAU, LARGURA_V, ALTURA_BAU);
     } else {
-        ctx.fillStyle = '#deb887'; ctx.fillRect(0, Y_BAU, LARGURA_V, ALTURA_BAU);
+        ctx.fillStyle = '#3c2814'; // Marrom escuro combinando com a nova madeira
+        ctx.fillRect(0, Y_BAU, LARGURA_V, ALTURA_BAU);
     }
 
+    // 2. Faixa branca semi-transparente (80% opacidade / rgba alpha 0.8)
+    // Definimos a área para cobrir o título e a altura dos objetos
+    const rectFaixaBranca = { x: 0, y: Y_BAU + 5, w: LARGURA_V, h: 200 };
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // Branco com 80% de transparência
+    ctx.fillRect(rectFaixaBranca.x, rectFaixaBranca.y, rectFaixaBranca.w, rectFaixaBranca.h);
+
+    // 3. Borda superior do baú
     ctx.fillStyle = COR_BORDA; ctx.fillRect(0, Y_BAU, LARGURA_V, 6);
+
+    // 4. Título "Baú" (agora sobre a faixa branca)
     ctx.font = "bold 28px Arial"; ctx.fillStyle = COR_TEXTO; ctx.textAlign = "left"; ctx.fillText("Baú", 15, Y_BAU + 35);
 
+    // 5. Desenho dos objetos dentro do baú (agora sobre a faixa branca)
     itensBau.forEach((item, i) => {
         const posX = xInicial + (i * espacamento) + scrollBau;
         if (posX + TAMANHO_BAU > 0 && posX < LARGURA_V) {
@@ -691,6 +722,7 @@ function desenharTela() {
 if (typeof TIPO_USUARIO !== 'undefined' && TIPO_USUARIO === 'anfitriao') {
     const linkPaciente = `${window.location.origin}/sessao/${SALA_ID}?tipo=convidado`;
 
+    // Contêiner para segurar o botão e o painel
     const containerTerap = document.createElement('div');
     containerTerap.style.position = 'absolute';
     containerTerap.style.top = '20px';
@@ -700,8 +732,9 @@ if (typeof TIPO_USUARIO !== 'undefined' && TIPO_USUARIO === 'anfitriao') {
     containerTerap.style.alignItems = 'flex-start';
     containerTerap.style.gap = '10px';
 
+    // O Botão com a sua Logo
     const btnLogo = document.createElement('img');
-    btnLogo.src = '/static/assets/logo.jpg';
+    btnLogo.src = '/static/assets/logo.jpg'; // Usando a imagem salva
     btnLogo.style.width = '70px';
     btnLogo.style.height = '70px';
     btnLogo.style.borderRadius = '50%';
@@ -711,11 +744,13 @@ if (typeof TIPO_USUARIO !== 'undefined' && TIPO_USUARIO === 'anfitriao') {
     btnLogo.style.transition = 'transform 0.2s';
     btnLogo.title = "Controles da Sessão";
 
+    // Efeito visual ao passar o mouse na logo
     btnLogo.onmouseenter = () => btnLogo.style.transform = 'scale(1.1)';
     btnLogo.onmouseleave = () => btnLogo.style.transform = 'scale(1.0)';
 
+    // O Painel oculto
     const painel = document.createElement('div');
-    painel.style.display = 'none';
+    painel.style.display = 'none'; // Começa escondido
     painel.style.background = 'rgba(0,0,0,0.85)';
     painel.style.padding = '15px 20px';
     painel.style.borderRadius = '10px';
@@ -747,6 +782,7 @@ if (typeof TIPO_USUARIO !== 'undefined' && TIPO_USUARIO === 'anfitriao') {
         </button>
     `;
 
+    // Lógica para abrir/fechar o painel ao clicar na logo
     btnLogo.onclick = () => {
         if (painel.style.display === 'none') {
             painel.style.display = 'block';
@@ -759,8 +795,10 @@ if (typeof TIPO_USUARIO !== 'undefined' && TIPO_USUARIO === 'anfitriao') {
     containerTerap.appendChild(painel);
     document.body.appendChild(containerTerap);
 
+    // Lógica do botão de Encerrar
     document.getElementById('btnEncerrar').onclick = () => {
-        if(confirm("Tem certeza que deseja encerrar esta sessão? O paciente perderá o acesso imediatamente.")) {
+        if(confirm("Tem certeza que deseja ENCERRAR esta sessão? O paciente perderá o acesso imediatamente.")) {
+            // Avisa o servidor para fechar a sala
             socket.emit('encerrar_sessao', { sala: SALA_ID });
         }
     };
