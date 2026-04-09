@@ -183,7 +183,6 @@ socket.on('atualizar_tabuleiro', (estado) => {
 // Ouve a ordem do servidor para encerrar a sessão
 socket.on('sessao_encerrada', () => {
     if (TIPO_USUARIO === 'convidado') {
-        // Se for o paciente, apaga o jogo inteiro e mostra a mensagem final
         document.body.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #1e272e; color: white; font-family: Arial;">
                 <img src="/static/assets/logo.jpg" style="width: 150px; border-radius: 50%; border: 3px solid #a06e32; margin-bottom: 20px;">
@@ -192,7 +191,6 @@ socket.on('sessao_encerrada', () => {
             </div>
         `;
     } else {
-        // Se for o terapeuta, redireciona ele de volta para a recepção (para gerar um novo link)
         window.location.href = '/';
     }
 });
@@ -213,31 +211,44 @@ function sincronizarServidor() {
 }
 
 // =======================================================
-// 5. CARREGAMENTO DO BAÚ E INÍCIO DO JOGO
+// 5. CARREGAMENTO DO BAÚ (COM CATEGORIAS E ABAS)
 // =======================================================
-const nomesArquivos = [
-    "bebe", "bebe1", "berco", "boneca", "boneca1", "cadeira", "cama",
-    "cama1", "cama2", "cao", "crianca", "crianca1", "estante", "gato",
-    "homem", "homem1", "mesa", "mulher", "mulher1", "piano", "poltrona",
-    "sofa", "tv", "vovo", "vovo1"
+// Catálogo Inteligente: Adicione os próximos objetos aqui e informe a categoria
+const configItens = [
+    { nome: "bebe", cat: "Pessoas" }, { nome: "bebe1", cat: "Pessoas" }, 
+    { nome: "crianca", cat: "Pessoas" }, { nome: "crianca1", cat: "Pessoas" },
+    { nome: "homem", cat: "Pessoas" }, { nome: "homem1", cat: "Pessoas" }, 
+    { nome: "mulher", cat: "Pessoas" }, { nome: "mulher1", cat: "Pessoas" },
+    { nome: "vovo", cat: "Pessoas" }, { nome: "vovo1", cat: "Pessoas" },
+    
+    { nome: "berco", cat: "Móveis" }, { nome: "cadeira", cat: "Móveis" }, 
+    { nome: "cama", cat: "Móveis" }, { nome: "cama1", cat: "Móveis" }, { nome: "cama2", cat: "Móveis" },
+    { nome: "estante", cat: "Móveis" }, { nome: "mesa", cat: "Móveis" }, 
+    { nome: "poltrona", cat: "Móveis" }, { nome: "sofa", cat: "Móveis" },
+    
+    { nome: "cao", cat: "Animais" }, { nome: "gato", cat: "Animais" },
+    { nome: "tv", cat: "Eletros" },
+    { nome: "boneca", cat: "Outros" }, { nome: "boneca1", cat: "Outros" }, { nome: "piano", cat: "Outros" }
 ];
+
+const categoriasBau = ["Todos", "Pessoas", "Móveis", "Animais", "Eletros", "Ferramentas", "Outros"];
+let abaBauAtual = "Todos";
 
 const itensBau = [];
 let imagensCarregadas = 0;
 let scrollBau = 0;
 const espacamento = 170;
-const xInicial = 120;
+const xInicial = 120; // Onde os objetos começam a ser desenhados na esteira
 
 // Garante que o multiplayer só conecte DEPOIS que todas as imagens baixarem
-nomesArquivos.forEach((nome, index) => {
+configItens.forEach((itemInfo, index) => {
     const img = new Image();
-    img.src = `/static/assets/${nome}.png`;
+    img.src = `/static/assets/${itemInfo.nome}.png`;
     img.onload = () => {
-        itensBau.push({ nome: nome, img: img, proporcao: img.width / img.height, indexOriginal: index });
+        itensBau.push({ nome: itemInfo.nome, categoria: itemInfo.cat, img: img, proporcao: img.width / img.height, indexOriginal: index });
         imagensCarregadas++;
-        if(imagensCarregadas === nomesArquivos.length) {
+        if(imagensCarregadas === configItens.length) {
             itensBau.sort((a, b) => a.indexOriginal - b.indexOriginal);
-
             // Conecta na sala!
             socket.emit('entrar_na_sala', { sala: SALA_ID });
             desenharTela();
@@ -275,7 +286,6 @@ function getMousePos(evt) {
     let clientX = evt.clientX;
     let clientY = evt.clientY;
 
-    // Traduz o toque na tela (touch) para coordenadas de mouse
     if (evt.touches && evt.touches.length > 0) {
         clientX = evt.touches[0].clientX;
         clientY = evt.touches[0].clientY;
@@ -292,10 +302,9 @@ function getMousePos(evt) {
 
 // --- 1. INICIAR INTERAÇÃO (Clique ou Toque na tela) ---
 function iniciarInteracao(e) {
-    if(e.type === 'touchstart') e.preventDefault(); // Previne zoom e scroll nativo
+    if(e.type === 'touchstart') e.preventDefault(); 
     const pos = getMousePos(e);
 
-    // Aceita botão esquerdo do mouse OU toque na tela
     if (e.type === 'touchstart' || e.button === 0) {
         let clicouNav = false;
         if (abaAtual === "Casa Inteira") {
@@ -367,7 +376,9 @@ function iniciarInteracao(e) {
             const rectItem = itemSelecionado.obterRectTela(abaAtual);
 
             for (const [pType, pRect] of Object.entries(pontos)) {
-                if (collidePoint(pRect, pos.x, pos.y)) {
+                // Margem de toque expandida
+                const areaToque = { x: pRect.x - 25, y: pRect.y - 25, w: pRect.w + 50, h: pRect.h + 50 };
+                if (collidePoint(areaToque, pos.x, pos.y)) {
                     itemRedimensionando = itemSelecionado;
                     pontoControleAtivo = pType;
                     clicouPonto = true;
@@ -401,20 +412,47 @@ function iniciarInteracao(e) {
         }
 
         if (!pegou) {
-            let clicouBau = false;
-            itensBau.forEach((bauItem, i) => {
-                const posX = xInicial + (i * espacamento) + scrollBau;
-                const rectBau = { x: posX, y: Y_BAU + 40, w: TAMANHO_BAU, h: TAMANHO_BAU };
+            // CLIQUE NAS ABAS DO BAÚ
+            let clicouAbaBau = false;
+            let xAba = 100;
+            const yAba = Y_BAU - 5;
+            for (const cat of categoriasBau) {
+                ctx.font = "bold 16px Arial";
+                const wAba = ctx.measureText(cat).width + 30;
+                const rectAba = { x: xAba, y: yAba, w: wAba, h: 30 };
+                
+                if (collidePoint(rectAba, pos.x, pos.y)) {
+                    abaBauAtual = cat;
+                    scrollBau = 0; // Reseta a barra de rolagem ao trocar de aba
+                    clicouAbaBau = true;
+                    break;
+                }
+                xAba += wAba + 5;
+            }
+            if (clicouAbaBau) return;
 
-                if (collidePoint(rectBau, pos.x, pos.y)) {
-                    const comodoInicial = abaAtual === "Casa Inteira" ? "Sala" : abaAtual;
-                    const novoItem = new MiniaturaCena(bauItem.nome, bauItem.img, bauItem.proporcao, comodoInicial, 0, 0);
-                    listaMiniaturasCena.push(novoItem);
-                    itemArrastado = itemSelecionado = novoItem;
-                    propX = 0.5; propY = 0.5;
-                    clicouBau = true;
+            // CLIQUE NOS ITENS DO BAÚ (Apenas os da aba atual)
+            let clicouBau = false;
+            const itensFiltrados = abaBauAtual === "Todos" ? itensBau : itensBau.filter(i => i.categoria === abaBauAtual);
+            
+            itensFiltrados.forEach((bauItem, i) => {
+                const posX = xInicial + (i * espacamento) + scrollBau;
+                
+                // Só clica se o item estiver dentro dos limites da caixa transparente
+                if (posX > 80 && posX < LARGURA_V - 20) {
+                    const rectBau = { x: posX, y: Y_BAU + 40, w: TAMANHO_BAU, h: TAMANHO_BAU };
+
+                    if (collidePoint(rectBau, pos.x, pos.y)) {
+                        const comodoInicial = abaAtual === "Casa Inteira" ? "Sala" : abaAtual;
+                        const novoItem = new MiniaturaCena(bauItem.nome, bauItem.img, bauItem.proporcao, comodoInicial, 0, 0);
+                        listaMiniaturasCena.push(novoItem);
+                        itemArrastado = itemSelecionado = novoItem;
+                        propX = 0.5; propY = 0.5;
+                        clicouBau = true;
+                    }
                 }
             });
+            
             if (!clicouBau && pos.y < Y_BAU) {
                 itemSelecionado = null;
             }
@@ -424,7 +462,7 @@ function iniciarInteracao(e) {
 
 // --- 2. MOVER INTERAÇÃO (Arrastar, Girar, Escalar) ---
 function moverInteracao(e) {
-    if(e.type === 'touchmove') e.preventDefault(); // Previne scroll da tela ao arrastar móveis
+    if(e.type === 'touchmove') e.preventDefault(); 
     const pos = getMousePos(e);
 
     if (itemRotacionando && !itemRotacionando.travado) {
@@ -510,18 +548,14 @@ function moverInteracao(e) {
 function finalizarInteracao(e) {
     let teveAcao = (itemArrastado || itemRedimensionando || itemRotacionando);
 
-    // Lógica da Lixeira (Baú): Se estiver arrastando um item e soltá-lo na área do Baú
+    // Lógica da Lixeira
     if (itemArrastado) {
         const rect = itemArrastado.obterRectTela(abaAtual);
-
-        // Verifica se o centro do objeto passou da linha superior do Baú
         if (rect.y + (rect.h / 2) >= Y_BAU) {
-            // Remove o item da lista de objetos na cena
             const index = listaMiniaturasCena.indexOf(itemArrastado);
             if (index > -1) {
                 listaMiniaturasCena.splice(index, 1);
             }
-            // Se o item deletado era o que estava selecionado, limpa a seleção
             if (itemSelecionado === itemArrastado) {
                 itemSelecionado = null;
             }
@@ -533,25 +567,21 @@ function finalizarInteracao(e) {
     pontoControleAtivo = null;
     itemRotacionando = null;
 
-    // Sincroniza com o paciente (seja um movimento normal ou a exclusão no baú)
     if (teveAcao) {
         sincronizarServidor();
     }
 }
 
 // --- CONECTANDO OS EVENTOS AO CANVAS ---
-// Mouse
 canvas.addEventListener('mousedown', iniciarInteracao);
 canvas.addEventListener('mousemove', moverInteracao);
 window.addEventListener('mouseup', finalizarInteracao);
 
-// Touch (Celulares e Tablets)
 canvas.addEventListener('touchstart', iniciarInteracao, {passive: false});
 canvas.addEventListener('touchmove', moverInteracao, {passive: false});
 window.addEventListener('touchend', finalizarInteracao);
 
 
-// SINCRONIZA AO DELETAR COM BOTÃO DIREITO (Mouse)
 canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     const pos = getMousePos(e);
@@ -566,13 +596,14 @@ canvas.addEventListener('contextmenu', (e) => {
     }
 });
 
-// SCROLL DO BAÚ (Mouse)
+// SCROLL DO BAÚ (Respeitando a aba selecionada)
 canvas.addEventListener('wheel', (evento) => {
     const pos = getMousePos(evento);
     if (pos.y >= Y_BAU) {
         evento.preventDefault();
         scrollBau += evento.deltaY > 0 ? -60 : 60;
-        const limiteDir = Math.min(0, LARGURA_V - (xInicial + itensBau.length * espacamento + 50));
+        const itensFiltrados = abaBauAtual === "Todos" ? itensBau : itensBau.filter(i => i.categoria === abaBauAtual);
+        const limiteDir = Math.min(0, LARGURA_V - (xInicial + itensFiltrados.length * espacamento + 50));
         scrollBau = Math.max(Math.min(scrollBau, 0), limiteDir);
     }
 }, { passive: false });
@@ -616,22 +647,18 @@ function desenharTela() {
             ctx.fillStyle = COR_TEXTO; ctx.textAlign = "center";
             ctx.fillText(nome, quad.x + (quad.w / 2), quad.y + 42);
         }
-        // --- DESENHO DAS PAREDES E DIVISÓRIAS (Com Textura de Madeira) ---
-        let estiloParede = COR_BORDA; // Cor sólida de segurança caso a internet falhe
+        
+        // --- DESENHO DAS PAREDES E DIVISÓRIAS (Mantido da sua versão) ---
+        let estiloParede = COR_BORDA;
         if (imgFundoBau.complete && imgFundoBau.naturalWidth !== 0) {
-            estiloParede = ctx.createPattern(imgFundoBau, 'repeat'); // Transforma a foto em textura
+            estiloParede = ctx.createPattern(imgFundoBau, 'repeat');
         }
 
         ctx.fillStyle = estiloParede;
-        
-        // Parede horizontal central
         ctx.fillRect(0, row_h - (ESPESSURA_PAREDE/2), LARGURA_V, ESPESSURA_PAREDE);
-        // Divisória vertical 1
         ctx.fillRect(col_w - (ESPESSURA_PAREDE/2), 0, ESPESSURA_PAREDE, Y_BAU);
-        // Divisória vertical 2
         ctx.fillRect((col_w * 2) - (ESPESSURA_PAREDE/2), 0, ESPESSURA_PAREDE, Y_BAU);
         
-        // Borda externa de toda a casa
         ctx.lineWidth = ESPESSURA_PAREDE; 
         ctx.strokeStyle = estiloParede; 
         ctx.strokeRect(0, 0, LARGURA_V, Y_BAU);
@@ -698,45 +725,80 @@ function desenharTela() {
         }
     }
 
-    // --- DESENHO DO BAÚ NO FUNDO DA TELA ---
-    // 1. Fundo total de madeira escura texturizada (imagem ou cor fallback escura combinando)
+    // =======================================================
+    // --- DESENHO DO BAÚ COM ABAS E SEU FUNDO TRANSPARENTE ---
+    // =======================================================
+    
+    // 1. Fundo total de madeira
     if (imgFundoBau.complete && imgFundoBau.naturalWidth !== 0) {
         ctx.drawImage(imgFundoBau, 0, Y_BAU, LARGURA_V, ALTURA_BAU);
     } else {
-        ctx.fillStyle = '#3c2814'; // Marrom escuro combinando com a nova madeira
+        ctx.fillStyle = '#3c2814';
         ctx.fillRect(0, Y_BAU, LARGURA_V, ALTURA_BAU);
     }
 
-    // 2. Fundos semi-transparentes (50% opacidade / rgba alpha 0.5)
+    // 2. Borda superior do baú
+    ctx.fillStyle = COR_BORDA; 
+    ctx.fillRect(0, Y_BAU, LARGURA_V, 6);
+
+    // 3. Fundos semi-transparentes (Mantendo a sua escolha de 0.5 opacidade)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     
-    // Caixinha atrás do Título "Baú" (com bordas arredondadas)
+    // Caixinha atrás do Título "Baú" (Lateral esquerda)
     ctx.beginPath();
     ctx.roundRect(10, Y_BAU + 15, 80, 35, 8); 
     ctx.fill();
 
-    // Faixa central apenas onde os objetos ficam (centralizada verticalmente)
-    ctx.beginPath();
-    ctx.roundRect(100, Y_BAU + 25, LARGURA_V - 120, 180, 12); 
-    ctx.fill();
-
-    // 3. Borda superior do baú
-    ctx.fillStyle = COR_BORDA; 
-    ctx.fillRect(0, Y_BAU, LARGURA_V, 6);
-
-    // 4. Título "Baú" (Ajustado para caber perfeitamente na nova caixinha)
+    // Texto "Baú"
     ctx.font = "bold 26px Arial"; 
     ctx.fillStyle = COR_TEXTO; 
     ctx.textAlign = "center"; 
     ctx.fillText("Baú", 50, Y_BAU + 42);
 
-    // 5. Desenho dos objetos dentro do baú (agora sobre a faixa branca)
-    itensBau.forEach((item, i) => {
-        const posX = xInicial + (i * espacamento) + scrollBau;
-        if (posX + TAMANHO_BAU > 0 && posX < LARGURA_V) {
-            ctx.drawImage(item.img, posX, Y_BAU + 40, TAMANHO_BAU, TAMANHO_BAU);
-        }
+    // 4. Desenho das Abas Clicáveis
+    let xAba = 100;
+    const yAba = Y_BAU - 5; // Abas encostadas na caixa maior
+    
+    categoriasBau.forEach(cat => {
+        ctx.font = "bold 16px Arial";
+        const wAba = ctx.measureText(cat).width + 30;
+
+        // Visual da aba: Acende (0.8) se estiver selecionada, usa o seu 0.5 se não
+        ctx.fillStyle = (abaBauAtual === cat) ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.5)';
+        ctx.beginPath();
+        // Canto arredondado apenas no topo para "colar" na caixa de baixo
+        ctx.roundRect(xAba, yAba, wAba, 30, {tl: 8, tr: 8, bl: 0, br: 0}); 
+        ctx.fill();
+
+        ctx.fillStyle = COR_TEXTO;
+        ctx.textAlign = "center";
+        ctx.fillText(cat, xAba + wAba/2, yAba + 21);
+        xAba += wAba + 5;
     });
+
+    // 5. Faixa central apenas onde os objetos ficam (Mantendo o seu rgba 0.5)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.beginPath();
+    // A caixa principal encaixa logo debaixo das abas, por isso cantos quadrados em cima à esquerda
+    ctx.roundRect(100, Y_BAU + 25, LARGURA_V - 120, 180, {tl: 0, tr: 12, bl: 12, br: 12}); 
+    ctx.fill();
+
+    // 6. Desenho e Recorte dos Objetos do Baú (Apenas da Aba Atual)
+    const itensFiltrados = abaBauAtual === "Todos" ? itensBau : itensBau.filter(i => i.categoria === abaBauAtual);
+    
+    // MÁGICA DO RECORTE: O ctx.clip() impede que objetos "vazem" pra fora da área branca ao rolar
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(100, Y_BAU + 25, LARGURA_V - 120, 180, 12);
+    ctx.clip(); 
+
+    itensFiltrados.forEach((item, i) => {
+        const posX = xInicial + (i * espacamento) + scrollBau;
+        ctx.drawImage(item.img, posX, Y_BAU + 40, TAMANHO_BAU, TAMANHO_BAU);
+    });
+    
+    // Desliga o recorte para o restante da tela
+    ctx.restore(); 
 
     requestAnimationFrame(desenharTela);
 }
