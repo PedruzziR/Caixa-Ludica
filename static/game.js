@@ -751,18 +751,22 @@ function desenharTela() {
     ctx.fill();
 
     // Texto Vertical "B A Ú"
+    // 1. TAMANHO DA LETRA: Mude o "24px" abaixo para aumentar ou diminuir
     ctx.font = "bold 26px Arial"; 
     ctx.fillStyle = COR_TEXTO; 
     ctx.textAlign = "center"; 
-    ctx.textBaseline = "middle"; // Centraliza a letra perfeitamente no eixo Y
+    ctx.textBaseline = "middle"; 
 
     let centroXBau = 50; 
     let topoYBau = Y_BAU + 25;
 
-    // Desenha as letras dividindo os 180px de altura em 3 espaços perfeitos
-    ctx.fillText("B", centroXBau, topoYBau + 30);
-    ctx.fillText("A", centroXBau, topoYBau + 90);
-    ctx.fillText("Ú", centroXBau, topoYBau + 150);
+    // 2. ESPAÇAMENTO VERTICAL: 
+    // A caixa tem 180px de altura. O "A" fica no centro exato (90).
+    // Aproximamos o B para o 55 e o Ú para o 125. 
+    // Isso deixa 55 pixels de folga limpa no topo e na base da caixinha!
+    ctx.fillText("B", centroXBau, topoYBau + 55); 
+    ctx.fillText("A", centroXBau, topoYBau + 90); 
+    ctx.fillText("Ú", centroXBau, topoYBau + 125); 
 
     // Reseta o alinhamento para não bagunçar os outros textos do jogo
     ctx.textBaseline = "alphabetic";
