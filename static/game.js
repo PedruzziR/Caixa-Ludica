@@ -616,11 +616,25 @@ function desenharTela() {
             ctx.fillStyle = COR_TEXTO; ctx.textAlign = "center";
             ctx.fillText(nome, quad.x + (quad.w / 2), quad.y + 42);
         }
-        ctx.fillStyle = COR_BORDA;
+        // --- DESENHO DAS PAREDES E DIVISÓRIAS (Com Textura de Madeira) ---
+        let estiloParede = COR_BORDA; // Cor sólida de segurança caso a internet falhe
+        if (imgFundoBau.complete && imgFundoBau.naturalWidth !== 0) {
+            estiloParede = ctx.createPattern(imgFundoBau, 'repeat'); // Transforma a foto em textura
+        }
+
+        ctx.fillStyle = estiloParede;
+        
+        // Parede horizontal central
         ctx.fillRect(0, row_h - (ESPESSURA_PAREDE/2), LARGURA_V, ESPESSURA_PAREDE);
+        // Divisória vertical 1
         ctx.fillRect(col_w - (ESPESSURA_PAREDE/2), 0, ESPESSURA_PAREDE, Y_BAU);
+        // Divisória vertical 2
         ctx.fillRect((col_w * 2) - (ESPESSURA_PAREDE/2), 0, ESPESSURA_PAREDE, Y_BAU);
-        ctx.lineWidth = ESPESSURA_PAREDE; ctx.strokeStyle = COR_BORDA; ctx.strokeRect(0, 0, LARGURA_V, Y_BAU);
+        
+        // Borda externa de toda a casa
+        ctx.lineWidth = ESPESSURA_PAREDE; 
+        ctx.strokeStyle = estiloParede; 
+        ctx.strokeRect(0, 0, LARGURA_V, Y_BAU);
     } else {
         const quad = quadrantes[abaAtual];
         if (quad.img.complete && quad.img.naturalWidth !== 0) {
