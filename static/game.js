@@ -693,17 +693,28 @@ function desenharTela() {
         ctx.fillRect(0, Y_BAU, LARGURA_V, ALTURA_BAU);
     }
 
-    // 2. Faixa branca semi-transparente (80% opacidade / rgba alpha 0.8)
-    // Definimos a área para cobrir o título e a altura dos objetos
-    const rectFaixaBranca = { x: 0, y: Y_BAU + 5, w: LARGURA_V, h: 200 };
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)'; // Branco com 80% de transparência
-    ctx.fillRect(rectFaixaBranca.x, rectFaixaBranca.y, rectFaixaBranca.w, rectFaixaBranca.h);
+    // 2. Fundos semi-transparentes (50% opacidade / rgba alpha 0.5)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    
+    // Caixinha atrás do Título "Baú" (com bordas arredondadas)
+    ctx.beginPath();
+    ctx.roundRect(10, Y_BAU + 15, 80, 35, 8); 
+    ctx.fill();
+
+    // Faixa central apenas onde os objetos ficam (centralizada verticalmente)
+    ctx.beginPath();
+    ctx.roundRect(100, Y_BAU + 25, LARGURA_V - 120, 180, 12); 
+    ctx.fill();
 
     // 3. Borda superior do baú
-    ctx.fillStyle = COR_BORDA; ctx.fillRect(0, Y_BAU, LARGURA_V, 6);
+    ctx.fillStyle = COR_BORDA; 
+    ctx.fillRect(0, Y_BAU, LARGURA_V, 6);
 
-    // 4. Título "Baú" (agora sobre a faixa branca)
-    ctx.font = "bold 28px Arial"; ctx.fillStyle = COR_TEXTO; ctx.textAlign = "left"; ctx.fillText("Baú", 15, Y_BAU + 35);
+    // 4. Título "Baú" (Ajustado para caber perfeitamente na nova caixinha)
+    ctx.font = "bold 26px Arial"; 
+    ctx.fillStyle = COR_TEXTO; 
+    ctx.textAlign = "center"; 
+    ctx.fillText("Baú", 50, Y_BAU + 42);
 
     // 5. Desenho dos objetos dentro do baú (agora sobre a faixa branca)
     itensBau.forEach((item, i) => {
