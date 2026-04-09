@@ -744,16 +744,28 @@ function desenharTela() {
     // 3. Fundos semi-transparentes (Mantendo a sua escolha de 0.5 opacidade)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     
-    // Caixinha atrás do Título "Baú" (Lateral esquerda)
+    // Caixinha VERTICAL atrás do Título "BAÚ" (Lateral esquerda)
     ctx.beginPath();
-    ctx.roundRect(10, Y_BAU + 15, 80, 35, 8); 
+    // Mesma altura (180) e posição Y (Y_BAU + 25) da caixa de objetos
+    ctx.roundRect(20, Y_BAU + 25, 60, 180, 12); 
     ctx.fill();
 
-    // Texto "Baú"
+    // Texto Vertical "B A Ú"
     ctx.font = "bold 26px Arial"; 
     ctx.fillStyle = COR_TEXTO; 
     ctx.textAlign = "center"; 
-    ctx.fillText("Baú", 50, Y_BAU + 42);
+    ctx.textBaseline = "middle"; // Centraliza a letra perfeitamente no eixo Y
+
+    let centroXBau = 50; 
+    let topoYBau = Y_BAU + 25;
+
+    // Desenha as letras dividindo os 180px de altura em 3 espaços perfeitos
+    ctx.fillText("B", centroXBau, topoYBau + 30);
+    ctx.fillText("A", centroXBau, topoYBau + 90);
+    ctx.fillText("Ú", centroXBau, topoYBau + 150);
+
+    // Reseta o alinhamento para não bagunçar os outros textos do jogo
+    ctx.textBaseline = "alphabetic";
 
     // 4. Desenho das Abas Clicáveis
     let xAba = 100;
