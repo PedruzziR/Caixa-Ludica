@@ -696,7 +696,7 @@ function desenharTela() {
     // 2. Faixa branca semi-transparente (80% opacidade / rgba alpha 0.8)
     // Definimos a área para cobrir o título e a altura dos objetos
     const rectFaixaBranca = { x: 0, y: Y_BAU + 5, w: LARGURA_V, h: 200 };
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'; // Branco com 80% de transparência
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)'; // Branco com 80% de transparência
     ctx.fillRect(rectFaixaBranca.x, rectFaixaBranca.y, rectFaixaBranca.w, rectFaixaBranca.h);
 
     // 3. Borda superior do baú
