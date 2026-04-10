@@ -226,8 +226,7 @@ const configItens = [
     { nome: "banheira", cat: "Móveis" }, { nome: "bau", cat: "Móveis" },
     { nome: "berco", cat: "Móveis" }, { nome: "cadeira", cat: "Móveis" }, { nome: "cadeira1", cat: "Móveis" },
     { nome: "cama", cat: "Móveis" }, { nome: "cama1", cat: "Móveis" }, { nome: "cama2", cat: "Móveis" },
-    { nome: "estante", cat: "Móveis" }, { nome: "mesa", cat: "Móveis" }, 
-    { nome: "mesa_de_trabalho", cat: "Móveis" }, { nome: "mesa_jantar", cat: "Móveis" },
+    { nome: "estante", cat: "Móveis" }, { nome: "mesa", cat: "Móveis" }, { nome: "mesa_jantar", cat: "Móveis" },
     { nome: "pia", cat: "Móveis" }, { nome: "poltrona", cat: "Móveis" }, { nome: "poltrona2", cat: "Móveis" },
     { nome: "sanitario", cat: "Móveis" }, { nome: "sofa", cat: "Móveis" }, { nome: "sofa1", cat: "Móveis" },
     
@@ -240,7 +239,7 @@ const configItens = [
     // --- FERRAMENTAS ---
     { nome: "facao", cat: "Ferramentas" }, { nome: "foice", cat: "Ferramentas" }, 
     { nome: "machado", cat: "Ferramentas" }, { nome: "motossera", cat: "Ferramentas" }, 
-    { nome: "picareta", cat: "Ferramentas" },
+    { nome: "picareta", cat: "Ferramentas" }, { nome: "mesa_de_trabalho", cat: "Ferramentas" },
 
     // --- OUTROS ---
     { nome: "boneca", cat: "Outros" }, { nome: "boneca1", cat: "Outros" }, { nome: "piano", cat: "Outros" }
