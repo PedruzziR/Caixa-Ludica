@@ -215,19 +215,34 @@ function sincronizarServidor() {
 // =======================================================
 // Catálogo Inteligente: Adicione os próximos objetos aqui e informe a categoria
 const configItens = [
+    // --- PESSOAS ---
     { nome: "bebe", cat: "Pessoas" }, { nome: "bebe1", cat: "Pessoas" }, 
     { nome: "crianca", cat: "Pessoas" }, { nome: "crianca1", cat: "Pessoas" },
     { nome: "homem", cat: "Pessoas" }, { nome: "homem1", cat: "Pessoas" }, 
     { nome: "mulher", cat: "Pessoas" }, { nome: "mulher1", cat: "Pessoas" },
     { nome: "vovo", cat: "Pessoas" }, { nome: "vovo1", cat: "Pessoas" },
     
-    { nome: "berco", cat: "Móveis" }, { nome: "cadeira", cat: "Móveis" }, 
+    // --- MÓVEIS ---
+    { nome: "banheira", cat: "Móveis" }, { nome: "bau", cat: "Móveis" },
+    { nome: "berco", cat: "Móveis" }, { nome: "cadeira", cat: "Móveis" }, { nome: "cadeira1", cat: "Móveis" },
     { nome: "cama", cat: "Móveis" }, { nome: "cama1", cat: "Móveis" }, { nome: "cama2", cat: "Móveis" },
     { nome: "estante", cat: "Móveis" }, { nome: "mesa", cat: "Móveis" }, 
-    { nome: "poltrona", cat: "Móveis" }, { nome: "sofa", cat: "Móveis" },
+    { nome: "mesa_de_trabalho", cat: "Móveis" }, { nome: "mesa_jantar", cat: "Móveis" },
+    { nome: "pia", cat: "Móveis" }, { nome: "poltrona", cat: "Móveis" }, { nome: "poltrona2", cat: "Móveis" },
+    { nome: "sanitario", cat: "Móveis" }, { nome: "sofa", cat: "Móveis" }, { nome: "sofa1", cat: "Móveis" },
     
+    // --- ANIMAIS ---
     { nome: "cao", cat: "Animais" }, { nome: "gato", cat: "Animais" },
-    { nome: "tv", cat: "Eletros" },
+    
+    // --- ELETROS ---
+    { nome: "geladeira", cat: "Eletros" }, { nome: "geladeira1", cat: "Eletros" }, { nome: "tv", cat: "Eletros" },
+    
+    // --- FERRAMENTAS ---
+    { nome: "facao", cat: "Ferramentas" }, { nome: "foice", cat: "Ferramentas" }, 
+    { nome: "machado", cat: "Ferramentas" }, { nome: "motossera", cat: "Ferramentas" }, 
+    { nome: "picareta", cat: "Ferramentas" },
+
+    // --- OUTROS ---
     { nome: "boneca", cat: "Outros" }, { nome: "boneca1", cat: "Outros" }, { nome: "piano", cat: "Outros" }
 ];
 
