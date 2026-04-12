@@ -246,7 +246,7 @@ const configItens = [
     
     // --- FERRAMENTAS E LIMPEZA ---
     { nome: "facao", cat: "Ferramentas" }, { nome: "foice", cat: "Ferramentas" }, 
-    { nome: "machado", cat: "Ferramentas" }, { nome: "motossera", cat: "Ferramentas" }, 
+    { nome: "machado", cat: "Ferramentas" },
     { nome: "picareta", cat: "Ferramentas" }, { nome: "vassoura", cat: "Ferramentas" }, { nome: "vassoura1", cat: "Ferramentas" },
     { nome: "balde", cat: "Ferramentas" }, { nome: "bacia", cat: "Ferramentas" },
 
