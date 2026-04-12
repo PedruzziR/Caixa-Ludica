@@ -213,7 +213,7 @@ function sincronizarServidor() {
 // =======================================================
 // 5. CARREGAMENTO DO BAÚ (COM CATEGORIAS E ABAS)
 // =======================================================
-// Catálogo Inteligente: Adicione os próximos objetos aqui e informe a categoria
+// Catálogo Inteligente: Lista completa atualizada com os novos arquivos
 const configItens = [
     // --- PESSOAS ---
     { nome: "bebe", cat: "Pessoas" }, { nome: "bebe1", cat: "Pessoas" }, 
@@ -226,23 +226,35 @@ const configItens = [
     { nome: "banheira", cat: "Móveis" }, { nome: "bau", cat: "Móveis" },
     { nome: "berco", cat: "Móveis" }, { nome: "cadeira", cat: "Móveis" }, { nome: "cadeira1", cat: "Móveis" },
     { nome: "cama", cat: "Móveis" }, { nome: "cama1", cat: "Móveis" }, { nome: "cama2", cat: "Móveis" },
-    { nome: "estante", cat: "Móveis" }, { nome: "mesa", cat: "Móveis" }, { nome: "mesa_jantar", cat: "Móveis" },
+    { nome: "estante", cat: "Móveis" }, { nome: "mesa", cat: "Móveis" }, 
+    { nome: "mesa_de_trabalho", cat: "Móveis" }, { nome: "mesa_jantar", cat: "Móveis" },
     { nome: "pia", cat: "Móveis" }, { nome: "poltrona", cat: "Móveis" }, { nome: "poltrona2", cat: "Móveis" },
     { nome: "sanitario", cat: "Móveis" }, { nome: "sofa", cat: "Móveis" }, { nome: "sofa1", cat: "Móveis" },
     
-    // --- ANIMAIS ---
+    // --- ANIMAIS (Muitas novidades aqui!) ---
     { nome: "cao", cat: "Animais" }, { nome: "gato", cat: "Animais" },
+    { nome: "capivara", cat: "Animais" }, { nome: "capivara1", cat: "Animais" }, { nome: "capivara2", cat: "Animais" },
+    { nome: "cobra", cat: "Animais" }, { nome: "cobra1", cat: "Animais" },
+    { nome: "coelho", cat: "Animais" }, { nome: "coelho1", cat: "Animais" }, { nome: "coelho2", cat: "Animais" },
+    { nome: "galinha", cat: "Animais" }, { nome: "galinha1", cat: "Animais" }, { nome: "galinha2", cat: "Animais" },
+    { nome: "passaro", cat: "Animais" }, { nome: "passaro1", cat: "Animais" }, { nome: "passaro2", cat: "Animais" }, { nome: "passaro3", cat: "Animais" },
+
+    // --- ELETROS E TECH ---
+    { nome: "geladeira", cat: "Eletros" }, { nome: "geladeira1", cat: "Eletros" }, { nome: "geladeira2", cat: "Eletros" },
+    { nome: "tv", cat: "Eletros" }, { nome: "celular", cat: "Eletros" }, { nome: "celular1", cat: "Eletros" },
+    { nome: "tablet", cat: "Eletros" }, { nome: "tablet1", cat: "Eletros" }, { nome: "videogame", cat: "Eletros" },
     
-    // --- ELETROS ---
-    { nome: "geladeira", cat: "Eletros" }, { nome: "geladeira1", cat: "Eletros" }, { nome: "tv", cat: "Eletros" },
-    
-    // --- FERRAMENTAS ---
+    // --- FERRAMENTAS E LIMPEZA ---
     { nome: "facao", cat: "Ferramentas" }, { nome: "foice", cat: "Ferramentas" }, 
     { nome: "machado", cat: "Ferramentas" }, { nome: "motossera", cat: "Ferramentas" }, 
-    { nome: "picareta", cat: "Ferramentas" }, { nome: "mesa_de_trabalho", cat: "Ferramentas" },
+    { nome: "picareta", cat: "Ferramentas" }, { nome: "vassoura", cat: "Ferramentas" }, { nome: "vassoura1", cat: "Ferramentas" },
+    { nome: "balde", cat: "Ferramentas" }, { nome: "bacia", cat: "Ferramentas" },
 
     // --- OUTROS ---
-    { nome: "boneca", cat: "Outros" }, { nome: "boneca1", cat: "Outros" }, { nome: "piano", cat: "Outros" }
+    { nome: "boneca", cat: "Outros" }, { nome: "boneca1", cat: "Outros" }, { nome: "piano", cat: "Outros" },
+    { nome: "pelucia", cat: "Outros" }, { nome: "pelucia1", cat: "Outros" },
+    { nome: "plantas", cat: "Outros" }, { nome: "plantas1", cat: "Outros" },
+    { nome: "esponja", cat: "Outros" }, { nome: "esponja1", cat: "Outros" }
 ];
 
 const categoriasBau = ["Todos", "Pessoas", "Móveis", "Animais", "Eletros", "Ferramentas", "Outros"];
