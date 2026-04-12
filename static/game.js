@@ -59,12 +59,16 @@ let posAncoraTela = {x: 0, y: 0};
 let propX = 0.5;
 let propY = 0.5;
 
+// Variáveis para Rolagem por Toque no Tablet
+let estaArrastandoBau = false;
+let xIncialToqueBau = 0;
+
 // =======================================================
 // 3. CLASSE MINIATURA
 // =======================================================
 class MiniaturaCena {
     constructor(nome, img, proporcaoAspecto, comodoInicial, xLocal, yLocal) {
-        this.nome = nome; // Guarda o nome do objeto para enviar pela internet
+        this.nome = nome; 
         this.img = img;
         this.proporcaoAspecto = proporcaoAspecto;
         this.comodo = comodoInicial;
@@ -105,23 +109,14 @@ class MiniaturaCena {
 
     obterRectTela(aba) {
         const [largura, altura] = this.calcularTamanhoRotacionado(aba);
-
         if (aba === "Casa Inteira") {
             const quad = quadrantes[this.comodo];
             const [larguraComodo, alturaComodo] = this.calcularTamanhoRotacionado(this.comodo);
-
             const centroXLocal = this.xLocal + (larguraComodo / 2);
             const centroYLocal = this.yLocal + (alturaComodo / 2);
-
             const centroXGlobal = quad.x + (centroXLocal * (quad.w / LARGURA_V));
             const centroYGlobal = quad.y + (centroYLocal * (quad.h / ALTURA_CENARIO));
-
-            return {
-                x: centroXGlobal - (largura / 2),
-                y: centroYGlobal - (altura / 2),
-                w: largura,
-                h: altura
-            };
+            return { x: centroXGlobal - (largura / 2), y: centroYGlobal - (altura / 2), w: largura, h: altura };
         } else if (aba === this.comodo) {
             return { x: this.xLocal, y: this.yLocal, w: largura, h: altura };
         }
@@ -159,12 +154,10 @@ class MiniaturaCena {
 // =======================================================
 const socket = io();
 
-// Atualiza a tela de todos quando recebemos um movimento do servidor
 socket.on('atualizar_tabuleiro', (estado) => {
     listaMiniaturasCena = estado.map(d => {
         const bauItem = itensBau.find(i => i.nome === d.nome);
         if(!bauItem) return null;
-
         const m = new MiniaturaCena(d.nome, bauItem.img, bauItem.proporcao, d.comodo, d.xLocal, d.yLocal);
         m.escalaManual = d.escalaManual;
         m.viradoHorizontalmente = d.viradoHorizontalmente;
@@ -172,40 +165,21 @@ socket.on('atualizar_tabuleiro', (estado) => {
         m.travado = d.travado;
         return m;
     }).filter(i => i !== null);
-
-    // Solta os itens para não dar conflito visual
-    itemArrastado = null;
-    itemSelecionado = null;
-    itemRedimensionando = null;
-    itemRotacionando = null;
+    itemArrastado = null; itemSelecionado = null; itemRedimensionando = null; itemRotacionando = null;
 });
 
-// Ouve a ordem do servidor para encerrar a sessão
 socket.on('sessao_encerrada', () => {
     if (TIPO_USUARIO === 'convidado') {
-        document.body.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #1e272e; color: white; font-family: Arial;">
-                <img src="/static/assets/logo.jpg" style="width: 150px; border-radius: 50%; border: 3px solid #a06e32; margin-bottom: 20px;">
-                <h1>Sessão Encerrada</h1>
-                <p>O terapeuta encerrou a sessão de hoje. Até a próxima!</p>
-            </div>
-        `;
+        document.body.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #1e272e; color: white; font-family: Arial;"><img src="/static/assets/logo.jpg" style="width: 150px; border-radius: 50%; border: 3px solid #a06e32; margin-bottom: 20px;"><h1>Sessão Encerrada</h1><p>O terapeuta encerrou a sessão de hoje. Até a próxima!</p></div>`;
     } else {
         window.location.href = '/';
     }
 });
 
-// Envia a arrumação atual para o servidor
 function sincronizarServidor() {
     const estado = listaMiniaturasCena.map(item => ({
-        nome: item.nome,
-        comodo: item.comodo,
-        xLocal: item.xLocal,
-        yLocal: item.yLocal,
-        escalaManual: item.escalaManual,
-        viradoHorizontalmente: item.viradoHorizontalmente,
-        angulo: item.angulo,
-        travado: item.travado
+        nome: item.nome, comodo: item.comodo, xLocal: item.xLocal, yLocal: item.yLocal,
+        escalaManual: item.escalaManual, viradoHorizontalmente: item.viradoHorizontalmente, angulo: item.angulo, travado: item.travado
     }));
     socket.emit('movimento_realizado', { sala: SALA_ID, estado: estado });
 }
@@ -213,16 +187,12 @@ function sincronizarServidor() {
 // =======================================================
 // 5. CARREGAMENTO DO BAÚ (COM CATEGORIAS E ABAS)
 // =======================================================
-// Catálogo Inteligente: Lista completa atualizada com os novos arquivos
 const configItens = [
-    // --- PESSOAS ---
     { nome: "bebe", cat: "Pessoas" }, { nome: "bebe1", cat: "Pessoas" }, 
     { nome: "crianca", cat: "Pessoas" }, { nome: "crianca1", cat: "Pessoas" },
     { nome: "homem", cat: "Pessoas" }, { nome: "homem1", cat: "Pessoas" }, 
     { nome: "mulher", cat: "Pessoas" }, { nome: "mulher1", cat: "Pessoas" },
     { nome: "vovo", cat: "Pessoas" }, { nome: "vovo1", cat: "Pessoas" },
-    
-    // --- MÓVEIS ---
     { nome: "banheira", cat: "Móveis" }, { nome: "bau", cat: "Móveis" },
     { nome: "berco", cat: "Móveis" }, { nome: "cadeira", cat: "Móveis" }, { nome: "cadeira1", cat: "Móveis" },
     { nome: "cama", cat: "Móveis" }, { nome: "cama1", cat: "Móveis" }, { nome: "cama2", cat: "Móveis" },
@@ -230,27 +200,19 @@ const configItens = [
     { nome: "mesa_de_trabalho", cat: "Móveis" }, { nome: "mesa_jantar", cat: "Móveis" },
     { nome: "pia", cat: "Móveis" }, { nome: "poltrona", cat: "Móveis" }, { nome: "poltrona2", cat: "Móveis" },
     { nome: "sanitario", cat: "Móveis" }, { nome: "sofa", cat: "Móveis" }, { nome: "sofa1", cat: "Móveis" },
-    
-    // --- ANIMAIS (Muitas novidades aqui!) ---
     { nome: "cao", cat: "Animais" }, { nome: "gato", cat: "Animais" },
     { nome: "capivara", cat: "Animais" }, { nome: "capivara1", cat: "Animais" }, { nome: "capivara2", cat: "Animais" },
     { nome: "cobra", cat: "Animais" }, { nome: "cobra1", cat: "Animais" },
     { nome: "coelho", cat: "Animais" }, { nome: "coelho1", cat: "Animais" }, { nome: "coelho2", cat: "Animais" },
     { nome: "galinha", cat: "Animais" }, { nome: "galinha1", cat: "Animais" }, { nome: "galinha2", cat: "Animais" },
     { nome: "passaro", cat: "Animais" }, { nome: "passaro1", cat: "Animais" }, { nome: "passaro2", cat: "Animais" }, { nome: "passaro3", cat: "Animais" },
-
-    // --- ELETROS E TECH ---
     { nome: "geladeira", cat: "Eletros" }, { nome: "geladeira1", cat: "Eletros" }, { nome: "geladeira2", cat: "Eletros" },
     { nome: "tv", cat: "Eletros" }, { nome: "celular", cat: "Eletros" }, { nome: "celular1", cat: "Eletros" },
     { nome: "tablet", cat: "Eletros" }, { nome: "tablet1", cat: "Eletros" }, { nome: "videogame", cat: "Eletros" },
-    
-    // --- FERRAMENTAS E LIMPEZA ---
     { nome: "facao", cat: "Ferramentas" }, { nome: "foice", cat: "Ferramentas" }, 
     { nome: "machado", cat: "Ferramentas" },
     { nome: "picareta", cat: "Ferramentas" }, { nome: "vassoura", cat: "Ferramentas" }, { nome: "vassoura1", cat: "Ferramentas" },
     { nome: "balde", cat: "Ferramentas" }, { nome: "bacia", cat: "Ferramentas" },
-
-    // --- OUTROS ---
     { nome: "boneca", cat: "Outros" }, { nome: "boneca1", cat: "Outros" }, { nome: "piano", cat: "Outros" },
     { nome: "pelucia", cat: "Outros" }, { nome: "pelucia1", cat: "Outros" },
     { nome: "plantas", cat: "Outros" }, { nome: "plantas1", cat: "Outros" },
@@ -264,9 +226,8 @@ const itensBau = [];
 let imagensCarregadas = 0;
 let scrollBau = 0;
 const espacamento = 170;
-const xInicial = 120; // Onde os objetos começam a ser desenhados na esteira
+const xInicial = 120;
 
-// Garante que o multiplayer só conecte DEPOIS que todas as imagens baixarem
 configItens.forEach((itemInfo, index) => {
     const img = new Image();
     img.src = `/static/assets/${itemInfo.nome}.png`;
@@ -275,7 +236,6 @@ configItens.forEach((itemInfo, index) => {
         imagensCarregadas++;
         if(imagensCarregadas === configItens.length) {
             itensBau.sort((a, b) => a.indexOriginal - b.indexOriginal);
-            // Conecta na sala!
             socket.emit('entrar_na_sala', { sala: SALA_ID });
             desenharTela();
         }
@@ -291,7 +251,7 @@ const botoesAcao = {
 };
 
 // =======================================================
-// 6. EVENTOS DO MOUSE AND TOUCH (Com Sincronização)
+// 6. EVENTOS DO MOUSE AND TOUCH
 // =======================================================
 function collidePoint(rect, px, py) {
     return px >= rect.x && px <= rect.x + rect.w && py >= rect.y && py <= rect.y + rect.h;
@@ -308,25 +268,15 @@ function getMousePos(evt) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-
-    let clientX = evt.clientX;
-    let clientY = evt.clientY;
-
+    let clientX = evt.clientX; let clientY = evt.clientY;
     if (evt.touches && evt.touches.length > 0) {
-        clientX = evt.touches[0].clientX;
-        clientY = evt.touches[0].clientY;
+        clientX = evt.touches[0].clientX; clientY = evt.touches[0].clientY;
     } else if (evt.changedTouches && evt.changedTouches.length > 0) {
-        clientX = evt.changedTouches[0].clientX;
-        clientY = evt.changedTouches[0].clientY;
+        clientX = evt.changedTouches[0].clientX; clientY = evt.changedTouches[0].clientY;
     }
-
-    return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
-    };
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
 }
 
-// --- 1. INICIAR INTERAÇÃO (Clique ou Toque na tela) ---
 function iniciarInteracao(e) {
     if(e.type === 'touchstart') e.preventDefault(); 
     const pos = getMousePos(e);
@@ -337,18 +287,13 @@ function iniciarInteracao(e) {
             for (const [nome, quad] of Object.entries(quadrantes)) {
                 const rectLegenda = { x: quad.x + quad.w/2 - 75, y: quad.y + 20, w: 150, h: 40 };
                 if (collidePoint(rectLegenda, pos.x, pos.y)) {
-                    abaAtual = nome;
-                    itemArrastado = itemSelecionado = null;
-                    clicouNav = true;
-                    break;
+                    abaAtual = nome; itemArrastado = itemSelecionado = null; clicouNav = true; break;
                 }
             }
         } else {
             const rectHome = { x: 20, y: 20, w: 40, h: 40 };
             if (collidePoint(rectHome, pos.x, pos.y)) {
-                abaAtual = "Casa Inteira";
-                itemArrastado = itemSelecionado = null;
-                clicouNav = true;
+                abaAtual = "Casa Inteira"; itemArrastado = itemSelecionado = null; clicouNav = true;
             }
         }
         if (clicouNav) return;
@@ -359,270 +304,191 @@ function iniciarInteracao(e) {
                 if (collidePoint(rectBtn, pos.x, pos.y)) {
                     clicouBotaoAcao = true;
                     if (nomeBtn === "Cópia" && !itemSelecionado.travado) {
-                        const nova = itemSelecionado.copiar();
-                        listaMiniaturasCena.push(nova);
-                        itemSelecionado = nova;
+                        const nova = itemSelecionado.copiar(); listaMiniaturasCena.push(nova); itemSelecionado = nova;
                     } else if (nomeBtn === "Virar" && !itemSelecionado.travado) {
                         itemSelecionado.viradoHorizontalmente = !itemSelecionado.viradoHorizontalmente;
                     } else if (nomeBtn === "Frente" && !itemSelecionado.travado) {
-                        listaMiniaturasCena = listaMiniaturasCena.filter(i => i !== itemSelecionado);
-                        listaMiniaturasCena.push(itemSelecionado);
+                        listaMiniaturasCena = listaMiniaturasCena.filter(i => i !== itemSelecionado); listaMiniaturasCena.push(itemSelecionado);
                     } else if (nomeBtn === "Atrás" && !itemSelecionado.travado) {
-                        listaMiniaturasCena = listaMiniaturasCena.filter(i => i !== itemSelecionado);
-                        listaMiniaturasCena.unshift(itemSelecionado);
+                        listaMiniaturasCena = listaMiniaturasCena.filter(i => i !== itemSelecionado); listaMiniaturasCena.unshift(itemSelecionado);
                     } else if (nomeBtn === "Travar") {
                         itemSelecionado.travado = !itemSelecionado.travado;
                     }
-                    sincronizarServidor();
-                    break;
+                    sincronizarServidor(); break;
                 }
             }
         }
         if (clicouBotaoAcao) return;
 
-        let clicouRot = false;
         if (itemSelecionado && !itemSelecionado.travado) {
             const rectItem = itemSelecionado.obterRectTela(abaAtual);
-            const cx = rectItem.x + rectItem.w / 2;
-            const cy = rectItem.y - 20;
-            const dist = Math.hypot(pos.x - cx, pos.y - cy);
-
-            if (dist <= 15) {
-                itemRotacionando = itemSelecionado;
-                clicouRot = true;
-                const cCentro = {x: rectItem.x + rectItem.w/2, y: rectItem.y + rectItem.h/2};
-                offsetAnguloMouse = Math.atan2(pos.y - cCentro.y, pos.x - cCentro.x) * 180 / Math.PI;
+            const cx = rectItem.x + rectItem.w / 2; const cy = rectItem.y - 20;
+            if (Math.hypot(pos.x - cx, pos.y - cy) <= 15) {
+                itemRotacionando = itemSelecionado; offsetAnguloMouse = Math.atan2(pos.y - (rectItem.y + rectItem.h/2), pos.x - (rectItem.x + rectItem.w/2)) * 180 / Math.PI; return;
             }
-        }
-        if (clicouRot) return;
-
-        let clicouPonto = false;
-        if (itemSelecionado && !itemSelecionado.travado) {
             const pontos = itemSelecionado.obterRectsPontosControle(abaAtual);
-            const rectItem = itemSelecionado.obterRectTela(abaAtual);
-
             for (const [pType, pRect] of Object.entries(pontos)) {
-                // Margem de toque expandida
                 const areaToque = { x: pRect.x - 25, y: pRect.y - 25, w: pRect.w + 50, h: pRect.h + 50 };
                 if (collidePoint(areaToque, pos.x, pos.y)) {
-                    itemRedimensionando = itemSelecionado;
-                    pontoControleAtivo = pType;
-                    clicouPonto = true;
-
+                    itemRedimensionando = itemSelecionado; pontoControleAtivo = pType;
                     if (pType === "top_left") posAncoraTela = {x: rectItem.x + rectItem.w, y: rectItem.y + rectItem.h};
                     else if (pType === "top_right") posAncoraTela = {x: rectItem.x, y: rectItem.y + rectItem.h};
                     else if (pType === "bottom_left") posAncoraTela = {x: rectItem.x + rectItem.w, y: rectItem.y};
                     else if (pType === "bottom_right") posAncoraTela = {x: rectItem.x, y: rectItem.y};
-                    break;
+                    return;
                 }
             }
         }
-        if (clicouPonto) return;
 
         let pegou = false;
         for (let i = listaMiniaturasCena.length - 1; i >= 0; i--) {
-            const item = listaMiniaturasCena[i];
-            const rectItem = item.obterRectTela(abaAtual);
+            const item = listaMiniaturasCena[i]; const rectItem = item.obterRectTela(abaAtual);
             if (collidePoint(rectItem, pos.x, pos.y)) {
                 itemSelecionado = item;
                 if (!item.travado) {
-                    itemArrastado = item;
-                    propX = (pos.x - rectItem.x) / rectItem.w;
-                    propY = (pos.y - rectItem.y) / rectItem.h;
-                    listaMiniaturasCena.splice(i, 1);
-                    listaMiniaturasCena.push(item);
+                    itemArrastado = item; propX = (pos.x - rectItem.x) / rectItem.w; propY = (pos.y - rectItem.y) / rectItem.h;
+                    listaMiniaturasCena.splice(i, 1); listaMiniaturasCena.push(item);
                 }
-                pegou = true;
-                break;
+                pegou = true; break;
             }
         }
 
         if (!pegou) {
-            // CLIQUE NAS ABAS DO BAÚ
             let clicouAbaBau = false;
-            let xAba = 100;
-            const yAba = Y_BAU - 5;
+            let xAba = 100; const yAba = Y_BAU - 5;
             for (const cat of categoriasBau) {
                 ctx.font = "bold 16px Arial";
                 const wAba = ctx.measureText(cat).width + 30;
                 const rectAba = { x: xAba, y: yAba, w: wAba, h: 30 };
-                
                 if (collidePoint(rectAba, pos.x, pos.y)) {
-                    abaBauAtual = cat;
-                    scrollBau = 0; // Reseta a barra de rolagem ao trocar de aba
-                    clicouAbaBau = true;
-                    break;
+                    abaBauAtual = cat; scrollBau = 0; clicouAbaBau = true; break;
                 }
                 xAba += wAba + 5;
             }
             if (clicouAbaBau) return;
 
-            // CLIQUE NOS ITENS DO BAÚ (Apenas os da aba atual)
-            let clicouBau = false;
+            let clicouItemBau = false;
             const itensFiltrados = abaBauAtual === "Todos" ? itensBau : itensBau.filter(i => i.categoria === abaBauAtual);
-            
             itensFiltrados.forEach((bauItem, i) => {
                 const posX = xInicial + (i * espacamento) + scrollBau;
-                
-                // Só clica se o item estiver dentro dos limites da caixa transparente
                 if (posX > 80 && posX < LARGURA_V - 20) {
                     const rectBau = { x: posX, y: Y_BAU + 40, w: TAMANHO_BAU, h: TAMANHO_BAU };
-
                     if (collidePoint(rectBau, pos.x, pos.y)) {
                         const comodoInicial = abaAtual === "Casa Inteira" ? "Sala" : abaAtual;
                         const novoItem = new MiniaturaCena(bauItem.nome, bauItem.img, bauItem.proporcao, comodoInicial, 0, 0);
                         listaMiniaturasCena.push(novoItem);
                         itemArrastado = itemSelecionado = novoItem;
-                        propX = 0.5; propY = 0.5;
-                        clicouBau = true;
+                        propX = 0.5; propY = 0.5; clicouItemBau = true;
                     }
                 }
             });
-            
-            if (!clicouBau && pos.y < Y_BAU) {
+
+            // Se o toque foi na área do baú mas NÃO pegou nenhum item, ativa a ROLAGEM lateral
+            if (!clicouItemBau && pos.y >= Y_BAU) {
+                estaArrastandoBau = true;
+                xIncialToqueBau = pos.x;
+            } else if (!clicouItemBau && pos.y < Y_BAU) {
                 itemSelecionado = null;
             }
         }
     }
 }
 
-// --- 2. MOVER INTERAÇÃO (Arrastar, Girar, Escalar) ---
 function moverInteracao(e) {
     if(e.type === 'touchmove') e.preventDefault(); 
     const pos = getMousePos(e);
 
+    // LÓGICA DE ROLAGEM POR TOQUE (TABLET)
+    if (estaArrastandoBau) {
+        let deltaX = pos.x - xIncialToqueBau;
+        scrollBau += deltaX;
+        xIncialToqueBau = pos.x;
+        
+        // Mantém a rolagem dentro dos limites
+        const itensFiltrados = abaBauAtual === "Todos" ? itensBau : itensBau.filter(i => i.categoria === abaBauAtual);
+        const limiteDir = Math.min(0, LARGURA_V - (xInicial + itensFiltrados.length * espacamento + 50));
+        scrollBau = Math.max(Math.min(scrollBau, 0), limiteDir);
+        return; 
+    }
+
     if (itemRotacionando && !itemRotacionando.travado) {
         const rectAntigo = itemRotacionando.obterRectTela(abaAtual);
         const cAntigo = {x: rectAntigo.x + rectAntigo.w/2, y: rectAntigo.y + rectAntigo.h/2};
-
         const anguloMouseAtual = Math.atan2(pos.y - cAntigo.y, pos.x - cAntigo.x) * 180 / Math.PI;
-        const difAngulo = anguloMouseAtual - offsetAnguloMouse;
-        itemRotacionando.angulo = (itemRotacionando.angulo - difAngulo) % 360;
+        itemRotacionando.angulo = (itemRotacionando.angulo - (anguloMouseAtual - offsetAnguloMouse)) % 360;
         offsetAnguloMouse = anguloMouseAtual;
-
         const novoRect = itemRotacionando.obterRectTela(abaAtual);
-        const dx = cAntigo.x - (novoRect.x + novoRect.w/2);
-        const dy = cAntigo.y - (novoRect.y + novoRect.h/2);
-
+        const dx = cAntigo.x - (novoRect.x + novoRect.w/2); const dy = cAntigo.y - (novoRect.y + novoRect.h/2);
         if (abaAtual === "Casa Inteira") {
             const quad = quadrantes[itemRotacionando.comodo];
-            itemRotacionando.xLocal += dx * (LARGURA_V / quad.w);
-            itemRotacionando.yLocal += dy * (ALTURA_CENARIO / quad.h);
+            itemRotacionando.xLocal += dx * (LARGURA_V / quad.w); itemRotacionando.yLocal += dy * (ALTURA_CENARIO / quad.h);
         } else {
-            itemRotacionando.xLocal += dx;
-            itemRotacionando.yLocal += dy;
+            itemRotacionando.xLocal += dx; itemRotacionando.yLocal += dy;
         }
     }
     else if (itemArrastado && !itemArrastado.travado) {
         if (abaAtual === "Casa Inteira") {
-            const novoComodo = descobrirComodoGlobal(pos.x, pos.y);
-            itemArrastado.comodo = novoComodo;
+            const novoComodo = descobrirComodoGlobal(pos.x, pos.y); itemArrastado.comodo = novoComodo;
             const quad = quadrantes[novoComodo];
             const [largura, altura] = itemArrastado.calcularTamanhoRotacionado(abaAtual);
-
-            const topLeftX = pos.x - (largura * propX);
-            const topLeftY = pos.y - (altura * propY);
-            const cGlobalX = topLeftX + (largura / 2);
-            const cGlobalY = topLeftY + (altura / 2);
-
-            const cLocalX = (cGlobalX - quad.x) * (LARGURA_V / quad.w);
-            const cLocalY = (cGlobalY - quad.y) * (ALTURA_CENARIO / quad.h);
-
+            const cGlobalX = pos.x - (largura * propX) + (largura / 2); const cGlobalY = pos.y - (altura * propY) + (altura / 2);
             const [lComodo, aComodo] = itemArrastado.calcularTamanhoRotacionado(itemArrastado.comodo);
-            itemArrastado.xLocal = cLocalX - (lComodo / 2);
-            itemArrastado.yLocal = cLocalY - (aComodo / 2);
+            itemArrastado.xLocal = ((cGlobalX - quad.x) * (LARGURA_V / quad.w)) - (lComodo / 2);
+            itemArrastado.yLocal = ((cGlobalY - quad.y) * (ALTURA_CENARIO / quad.h)) - (aComodo / 2);
         } else {
             const [largura, altura] = itemArrastado.calcularTamanhoRotacionado(abaAtual);
-            itemArrastado.xLocal = pos.x - (largura * propX);
-            itemArrastado.yLocal = pos.y - (altura * propY);
+            itemArrastado.xLocal = pos.x - (largura * propX); itemArrastado.yLocal = pos.y - (altura * propY);
         }
     }
     else if (itemRedimensionando && !itemRedimensionando.travado) {
         const largNova = Math.abs(pos.x - posAncoraTela.x);
         const oldScale = itemRedimensionando.escalaManual;
-
         itemRedimensionando.escalaManual = 1.0;
         const [largBaseRot] = itemRedimensionando.calcularTamanhoRotacionado(abaAtual);
-        itemRedimensionando.escalaManual = oldScale;
-
-        let novaEscala = largNova / Math.max(1, largBaseRot);
-        itemRedimensionando.escalaManual = Math.max(0.20, Math.min(3.00, novaEscala));
-
+        itemRedimensionando.escalaManual = Math.max(0.20, Math.min(3.00, largNova / Math.max(1, largBaseRot)));
         const [fLarg, fAlt] = itemRedimensionando.calcularTamanhoRotacionado(abaAtual);
-
         let tlX = pontoControleAtivo.includes("left") ? posAncoraTela.x - fLarg : posAncoraTela.x;
         let tlY = pontoControleAtivo.includes("top") ? posAncoraTela.y - fAlt : posAncoraTela.y;
-
         if (abaAtual === "Casa Inteira") {
             const quad = quadrantes[itemRedimensionando.comodo];
-            const cGlobalX = tlX + (fLarg / 2);
-            const cGlobalY = tlY + (fAlt / 2);
-            const cLocalX = (cGlobalX - quad.x) * (LARGURA_V / quad.w);
-            const cLocalY = (cGlobalY - quad.y) * (ALTURA_CENARIO / quad.h);
-
             const [lComodo, aComodo] = itemRedimensionando.calcularTamanhoRotacionado(itemRedimensionando.comodo);
-            itemRedimensionando.xLocal = cLocalX - (lComodo / 2);
-            itemRedimensionando.yLocal = cLocalY - (aComodo / 2);
+            itemRedimensionando.xLocal = (((tlX + fLarg/2) - quad.x) * (LARGURA_V / quad.w)) - (lComodo/2);
+            itemRedimensionando.yLocal = (((tlY + fAlt/2) - quad.y) * (ALTURA_CENARIO / quad.h)) - (aComodo/2);
         } else {
-            itemRedimensionando.xLocal = tlX;
-            itemRedimensionando.yLocal = tlY;
+            itemRedimensionando.xLocal = tlX; itemRedimensionando.yLocal = tlY;
         }
     }
 }
 
-// --- 3. FINALIZAR INTERAÇÃO (Soltar o dedo/mouse) ---
 function finalizarInteracao(e) {
     let teveAcao = (itemArrastado || itemRedimensionando || itemRotacionando);
-
-    // Lógica da Lixeira
     if (itemArrastado) {
         const rect = itemArrastado.obterRectTela(abaAtual);
         if (rect.y + (rect.h / 2) >= Y_BAU) {
             const index = listaMiniaturasCena.indexOf(itemArrastado);
-            if (index > -1) {
-                listaMiniaturasCena.splice(index, 1);
-            }
-            if (itemSelecionado === itemArrastado) {
-                itemSelecionado = null;
-            }
+            if (index > -1) listaMiniaturasCena.splice(index, 1);
+            if (itemSelecionado === itemArrastado) itemSelecionado = null;
         }
     }
-
-    itemArrastado = null;
-    itemRedimensionando = null;
-    pontoControleAtivo = null;
-    itemRotacionando = null;
-
-    if (teveAcao) {
-        sincronizarServidor();
-    }
+    itemArrastado = null; itemRedimensionando = null; pontoControleAtivo = null; itemRotacionando = null;
+    estaArrastandoBau = false; // Solta a rolagem do baú
+    if (teveAcao) sincronizarServidor();
 }
 
-// --- CONECTANDO OS EVENTOS AO CANVAS ---
-canvas.addEventListener('mousedown', iniciarInteracao);
-canvas.addEventListener('mousemove', moverInteracao);
-window.addEventListener('mouseup', finalizarInteracao);
-
-canvas.addEventListener('touchstart', iniciarInteracao, {passive: false});
-canvas.addEventListener('touchmove', moverInteracao, {passive: false});
-window.addEventListener('touchend', finalizarInteracao);
-
+canvas.addEventListener('mousedown', iniciarInteracao); canvas.addEventListener('mousemove', moverInteracao); window.addEventListener('mouseup', finalizarInteracao);
+canvas.addEventListener('touchstart', iniciarInteracao, {passive: false}); canvas.addEventListener('touchmove', moverInteracao, {passive: false}); window.addEventListener('touchend', finalizarInteracao);
 
 canvas.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    const pos = getMousePos(e);
+    e.preventDefault(); const pos = getMousePos(e);
     for (let i = listaMiniaturasCena.length - 1; i >= 0; i--) {
         const item = listaMiniaturasCena[i];
         if (collidePoint(item.obterRectTela(abaAtual), pos.x, pos.y)) {
-            listaMiniaturasCena.splice(i, 1);
-            if (itemSelecionado === item) itemSelecionado = null;
-            sincronizarServidor();
-            break;
+            listaMiniaturasCena.splice(i, 1); if (itemSelecionado === item) itemSelecionado = null;
+            sincronizarServidor(); break;
         }
     }
 });
 
-// SCROLL DO BAÚ (Respeitando a aba selecionada)
 canvas.addEventListener('wheel', (evento) => {
     const pos = getMousePos(evento);
     if (pos.y >= Y_BAU) {
@@ -638,21 +504,14 @@ canvas.addEventListener('wheel', (evento) => {
 // 7. DESENHO
 // =======================================================
 function desenharRetanguloPontilhado(ctx, cor, rect) {
-    ctx.save();
-    ctx.strokeStyle = cor;
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 8]);
-    ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
-    ctx.restore();
+    ctx.save(); ctx.strokeStyle = cor; ctx.lineWidth = 3; ctx.setLineDash([10, 8]); ctx.strokeRect(rect.x, rect.y, rect.w, rect.h); ctx.restore();
 }
 
 function desenharIconeRotacao(ctx, cx, cy, raio) {
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, raio, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff'; ctx.fill();
-    ctx.strokeStyle = '#646464'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.strokeStyle = '#646464'; ctx.lineWidth = 2; ctx.stroke();
     const rArco = raio * 0.6; ctx.beginPath(); ctx.arc(cx, cy, rArco, -Math.PI/2, Math.PI); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx - rArco, cy); ctx.lineTo(cx - rArco + 5, cy - rArco * 0.3);
-    ctx.lineTo(cx - rArco - 5, cy - rArco * 0.3); ctx.fillStyle = '#646464'; ctx.fill(); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(cx - rArco, cy); ctx.lineTo(cx - rArco + 5, cy - rArco * 0.3); ctx.lineTo(cx - rArco - 5, cy - rArco * 0.3); ctx.fillStyle = '#646464'; ctx.fill(); ctx.restore();
 }
 
 function desenharTela() {
@@ -660,76 +519,49 @@ function desenharTela() {
 
     if (abaAtual === "Casa Inteira") {
         for (const [nome, quad] of Object.entries(quadrantes)) {
-            if (quad.img.complete && quad.img.naturalWidth !== 0) {
-                ctx.drawImage(quad.img, quad.x, quad.y, quad.w, quad.h);
-            } else {
-                ctx.fillStyle = quad.cor; ctx.fillRect(quad.x, quad.y, quad.w, quad.h);
-            }
-            ctx.font = "bold 28px Arial";
-            const textWidth = ctx.measureText(nome).width;
-            ctx.fillStyle = '#ffffff'; ctx.beginPath();
-            ctx.roundRect(quad.x + quad.w/2 - textWidth/2 - 10, quad.y + 15, textWidth + 20, 35, 12); ctx.fill();
+            if (quad.img.complete && quad.img.naturalWidth !== 0) ctx.drawImage(quad.img, quad.x, quad.y, quad.w, quad.h);
+            else { ctx.fillStyle = quad.cor; ctx.fillRect(quad.x, quad.y, quad.w, quad.h); }
+            ctx.font = "bold 28px Arial"; const textWidth = ctx.measureText(nome).width;
+            ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(quad.x + quad.w/2 - textWidth/2 - 10, quad.y + 15, textWidth + 20, 35, 12); ctx.fill();
             ctx.strokeStyle = COR_BORDA; ctx.lineWidth = 3; ctx.stroke();
-            ctx.fillStyle = COR_TEXTO; ctx.textAlign = "center";
-            ctx.fillText(nome, quad.x + (quad.w / 2), quad.y + 42);
+            ctx.fillStyle = COR_TEXTO; ctx.textAlign = "center"; ctx.fillText(nome, quad.x + (quad.w / 2), quad.y + 42);
         }
-        
-        // --- DESENHO DAS PAREDES E DIVISÓRIAS (Mantido da sua versão) ---
         let estiloParede = COR_BORDA;
-        if (imgFundoBau.complete && imgFundoBau.naturalWidth !== 0) {
-            estiloParede = ctx.createPattern(imgFundoBau, 'repeat');
-        }
-
+        if (imgFundoBau.complete && imgFundoBau.naturalWidth !== 0) estiloParede = ctx.createPattern(imgFundoBau, 'repeat');
         ctx.fillStyle = estiloParede;
         ctx.fillRect(0, row_h - (ESPESSURA_PAREDE/2), LARGURA_V, ESPESSURA_PAREDE);
         ctx.fillRect(col_w - (ESPESSURA_PAREDE/2), 0, ESPESSURA_PAREDE, Y_BAU);
         ctx.fillRect((col_w * 2) - (ESPESSURA_PAREDE/2), 0, ESPESSURA_PAREDE, Y_BAU);
-        
-        ctx.lineWidth = ESPESSURA_PAREDE; 
-        ctx.strokeStyle = estiloParede; 
-        ctx.strokeRect(0, 0, LARGURA_V, Y_BAU);
+        ctx.lineWidth = ESPESSURA_PAREDE; ctx.strokeStyle = estiloParede; ctx.strokeRect(0, 0, LARGURA_V, Y_BAU);
     } else {
         const quad = quadrantes[abaAtual];
-        if (quad.img.complete && quad.img.naturalWidth !== 0) {
-            ctx.drawImage(quad.img, 0, 0, LARGURA_V, Y_BAU);
-        } else {
-            ctx.fillStyle = quad.cor; ctx.fillRect(0, 0, LARGURA_V, Y_BAU);
-        }
+        if (quad.img.complete && quad.img.naturalWidth !== 0) ctx.drawImage(quad.img, 0, 0, LARGURA_V, Y_BAU);
+        else { ctx.fillStyle = quad.cor; ctx.fillRect(0, 0, LARGURA_V, Y_BAU); }
     }
 
     listaMiniaturasCena.forEach(item => {
         if (abaAtual === "Casa Inteira") {
-            ctx.save();
-            const q = quadrantes[item.comodo];
-            ctx.beginPath(); ctx.rect(q.x, q.y, q.w, q.h); ctx.clip();
-            item.desenhar(ctx, abaAtual);
-            ctx.restore();
-        } else if (abaAtual === item.comodo) {
-            item.desenhar(ctx, abaAtual);
-        }
+            ctx.save(); const q = quadrantes[item.comodo]; ctx.beginPath(); ctx.rect(q.x, q.y, q.w, q.h); ctx.clip();
+            item.desenhar(ctx, abaAtual); ctx.restore();
+        } else if (abaAtual === item.comodo) item.desenhar(ctx, abaAtual);
     });
 
     if (abaAtual !== "Casa Inteira") {
         ctx.fillStyle = COR_BOTAO_ATIVO; ctx.beginPath(); ctx.roundRect(20, 20, 40, 40, 8); ctx.fill();
-        ctx.strokeStyle = COR_BORDA; ctx.lineWidth = 2; ctx.stroke();
-        ctx.fillStyle = COR_TEXTO; ctx.fillRect(30, 36, 20, 14);
+        ctx.strokeStyle = COR_BORDA; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = COR_TEXTO; ctx.fillRect(30, 36, 20, 14);
         ctx.beginPath(); ctx.moveTo(25, 36); ctx.lineTo(40, 24); ctx.lineTo(55, 36); ctx.fill();
         ctx.font = "bold 28px Arial"; const textW = ctx.measureText(abaAtual).width;
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(75, 20, textW + 20, 40, 8); ctx.fill();
-        ctx.strokeStyle = COR_BORDA; ctx.stroke();
-        ctx.fillStyle = COR_TEXTO; ctx.textAlign = "center"; ctx.fillText(abaAtual, 75 + textW/2 + 10, 48);
+        ctx.strokeStyle = COR_BORDA; ctx.stroke(); ctx.fillStyle = COR_TEXTO; ctx.textAlign = "center"; ctx.fillText(abaAtual, 75 + textW/2 + 10, 48);
     }
 
     if (itemSelecionado && (abaAtual === "Casa Inteira" || abaAtual === itemSelecionado.comodo)) {
         if (abaAtual === "Casa Inteira") {
-            ctx.save(); const q = quadrantes[itemSelecionado.comodo];
-            ctx.beginPath(); ctx.rect(q.x, q.y, q.w, q.h); ctx.clip();
+            ctx.save(); const q = quadrantes[itemSelecionado.comodo]; ctx.beginPath(); ctx.rect(q.x, q.y, q.w, q.h); ctx.clip();
         }
-        const rectItem = itemSelecionado.obterRectTela(abaAtual);
-        const pontos = itemSelecionado.obterRectsPontosControle(abaAtual);
+        const rectItem = itemSelecionado.obterRectTela(abaAtual); const pontos = itemSelecionado.obterRectsPontosControle(abaAtual);
         const corSelecao = itemSelecionado.travado ? '#ff3232' : '#ffffff';
         desenharRetanguloPontilhado(ctx, corSelecao, rectItem);
-
         if (!itemSelecionado.travado) {
             for (const pRect of Object.values(pontos)) {
                 ctx.beginPath(); ctx.arc(pRect.x + pRect.w/2, pRect.y + pRect.h/2, pRect.w/2, 0, Math.PI*2);
@@ -746,189 +578,65 @@ function desenharTela() {
             let texto = nomeBtn; let corFundo = '#ffffff';
             if (nomeBtn === "Travar" && itemSelecionado.travado) { texto = "Soltar"; corFundo = '#ffb4b4'; }
             ctx.fillStyle = corFundo; ctx.beginPath(); ctx.roundRect(rBtn.x, rBtn.y, rBtn.w, rBtn.h, 6); ctx.fill();
-            ctx.strokeStyle = '#000000'; ctx.lineWidth = 1; ctx.stroke();
-            ctx.fillStyle = '#000000'; ctx.fillText(texto, rBtn.x + rBtn.w/2, rBtn.y + 23);
+            ctx.strokeStyle = '#000000'; ctx.lineWidth = 1; ctx.stroke(); ctx.fillStyle = '#000000'; ctx.fillText(texto, rBtn.x + rBtn.w/2, rBtn.y + 23);
         }
     }
 
-    // =======================================================
-    // --- DESENHO DO BAÚ COM ABAS E SEU FUNDO TRANSPARENTE ---
-    // =======================================================
-    
-    // 1. Fundo total de madeira
-    if (imgFundoBau.complete && imgFundoBau.naturalWidth !== 0) {
-        ctx.drawImage(imgFundoBau, 0, Y_BAU, LARGURA_V, ALTURA_BAU);
-    } else {
-        ctx.fillStyle = '#3c2814';
-        ctx.fillRect(0, Y_BAU, LARGURA_V, ALTURA_BAU);
-    }
+    // --- DESENHO DO BAÚ COM ABAS ---
+    if (imgFundoBau.complete && imgFundoBau.naturalWidth !== 0) ctx.drawImage(imgFundoBau, 0, Y_BAU, LARGURA_V, ALTURA_BAU);
+    else { ctx.fillStyle = '#3c2814'; ctx.fillRect(0, Y_BAU, LARGURA_V, ALTURA_BAU); }
+    ctx.fillStyle = COR_BORDA; ctx.fillRect(0, Y_BAU, LARGURA_V, 6);
 
-    // 2. Borda superior do baú
-    ctx.fillStyle = COR_BORDA; 
-    ctx.fillRect(0, Y_BAU, LARGURA_V, 6);
-
-    // 3. Fundos semi-transparentes (Mantendo a sua escolha de 0.5 opacidade)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    
-    // Caixinha VERTICAL atrás do Título "BAÚ" (Lateral esquerda)
     ctx.beginPath();
-    // Mesma altura (180) e posição Y (Y_BAU + 25) da caixa de objetos
     ctx.roundRect(20, Y_BAU + 25, 60, 180, 12); 
     ctx.fill();
 
-    // Texto Vertical "B A Ú"
-    // 1. TAMANHO DA LETRA: Mude o "24px" abaixo para aumentar ou diminuir
-    ctx.font = "bold 26px Arial"; 
-    ctx.fillStyle = COR_TEXTO; 
-    ctx.textAlign = "center"; 
-    ctx.textBaseline = "middle"; 
-
-    let centroXBau = 50; 
-    let topoYBau = Y_BAU + 25;
-
-    // 2. ESPAÇAMENTO VERTICAL: 
-    // A caixa tem 180px de altura. O "A" fica no centro exato (90).
-    // Aproximamos o B para o 55 e o Ú para o 125. 
-    // Isso deixa 55 pixels de folga limpa no topo e na base da caixinha!
+    ctx.font = "bold 26px Arial"; ctx.fillStyle = COR_TEXTO; ctx.textAlign = "center"; ctx.textBaseline = "middle"; 
+    let centroXBau = 50; let topoYBau = Y_BAU + 25;
     ctx.fillText("B", centroXBau, topoYBau + 55); 
     ctx.fillText("A", centroXBau, topoYBau + 90); 
     ctx.fillText("Ú", centroXBau, topoYBau + 125); 
-
-    // Reseta o alinhamento para não bagunçar os outros textos do jogo
     ctx.textBaseline = "alphabetic";
 
-    // 4. Desenho das Abas Clicáveis
-    let xAba = 100;
-    const yAba = Y_BAU - 5; // Abas encostadas na caixa maior
-    
+    let xAba = 100; const yAba = Y_BAU - 5;
     categoriasBau.forEach(cat => {
         ctx.font = "bold 16px Arial";
         const wAba = ctx.measureText(cat).width + 30;
-
-        // Visual da aba: Acende (0.8) se estiver selecionada, usa o seu 0.5 se não
         ctx.fillStyle = (abaBauAtual === cat) ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.5)';
-        ctx.beginPath();
-        // Canto arredondado apenas no topo para "colar" na caixa de baixo
-        ctx.roundRect(xAba, yAba, wAba, 30, {tl: 8, tr: 8, bl: 0, br: 0}); 
-        ctx.fill();
-
-        ctx.fillStyle = COR_TEXTO;
-        ctx.textAlign = "center";
-        ctx.fillText(cat, xAba + wAba/2, yAba + 21);
+        ctx.beginPath(); ctx.roundRect(xAba, yAba, wAba, 30, {tl: 8, tr: 8, bl: 0, br: 0}); ctx.fill();
+        ctx.fillStyle = COR_TEXTO; ctx.textAlign = "center"; ctx.fillText(cat, xAba + wAba/2, yAba + 21);
         xAba += wAba + 5;
     });
 
-    // 5. Faixa central apenas onde os objetos ficam (Mantendo o seu rgba 0.5)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.beginPath();
-    // A caixa principal encaixa logo debaixo das abas, por isso cantos quadrados em cima à esquerda
     ctx.roundRect(100, Y_BAU + 25, LARGURA_V - 120, 180, {tl: 0, tr: 12, bl: 12, br: 12}); 
     ctx.fill();
 
-    // 6. Desenho e Recorte dos Objetos do Baú (Apenas da Aba Atual)
     const itensFiltrados = abaBauAtual === "Todos" ? itensBau : itensBau.filter(i => i.categoria === abaBauAtual);
-    
-    // MÁGICA DO RECORTE: O ctx.clip() impede que objetos "vazem" pra fora da área branca ao rolar
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(100, Y_BAU + 25, LARGURA_V - 120, 180, 12);
-    ctx.clip(); 
-
+    ctx.save(); ctx.beginPath(); ctx.roundRect(100, Y_BAU + 25, LARGURA_V - 120, 180, 12); ctx.clip(); 
     itensFiltrados.forEach((item, i) => {
         const posX = xInicial + (i * espacamento) + scrollBau;
         ctx.drawImage(item.img, posX, Y_BAU + 40, TAMANHO_BAU, TAMANHO_BAU);
     });
-    
-    // Desliga o recorte para o restante da tela
     ctx.restore(); 
 
     requestAnimationFrame(desenharTela);
 }
 
 // =======================================================
-// 8. INTERFACE DO TERAPEUTA (Painel Retrátil e Encerrar)
+// 8. INTERFACE DO TERAPEUTA
 // =======================================================
 if (typeof TIPO_USUARIO !== 'undefined' && TIPO_USUARIO === 'anfitriao') {
     const linkPaciente = `${window.location.origin}/sessao/${SALA_ID}?tipo=convidado`;
-
-    // Contêiner para segurar o botão e o painel
     const containerTerap = document.createElement('div');
-    containerTerap.style.position = 'absolute';
-    containerTerap.style.top = '20px';
-    containerTerap.style.left = '20px';
-    containerTerap.style.display = 'flex';
-    containerTerap.style.flexDirection = 'column';
-    containerTerap.style.alignItems = 'flex-start';
-    containerTerap.style.gap = '10px';
-
-    // O Botão com a sua Logo
-    const btnLogo = document.createElement('img');
-    btnLogo.src = '/static/assets/logo.jpg'; // Usando a imagem salva
-    btnLogo.style.width = '70px';
-    btnLogo.style.height = '70px';
-    btnLogo.style.borderRadius = '50%';
-    btnLogo.style.cursor = 'pointer';
-    btnLogo.style.border = '3px solid #a06e32';
-    btnLogo.style.boxShadow = '0 4px 10px rgba(0,0,0,0.6)';
-    btnLogo.style.transition = 'transform 0.2s';
-    btnLogo.title = "Controles da Sessão";
-
-    // Efeito visual ao passar o mouse na logo
-    btnLogo.onmouseenter = () => btnLogo.style.transform = 'scale(1.1)';
-    btnLogo.onmouseleave = () => btnLogo.style.transform = 'scale(1.0)';
-
-    // O Painel oculto
-    const painel = document.createElement('div');
-    painel.style.display = 'none'; // Começa escondido
-    painel.style.background = 'rgba(0,0,0,0.85)';
-    painel.style.padding = '15px 20px';
-    painel.style.borderRadius = '10px';
-    painel.style.color = 'white';
-    painel.style.fontFamily = 'Arial';
-    painel.style.boxShadow = '0 6px 12px rgba(0,0,0,0.4)';
-    painel.style.border = '2px solid #a06e32';
-
-    painel.innerHTML = `
-        <div style="font-size: 14px; margin-bottom: 8px;">Link de acesso do Paciente:</div>
-        <div style="display: flex; gap: 8px;">
-            <input type="text" id="linkPac" value="${linkPaciente}" readonly
-                   style="padding: 8px; width: 250px; border-radius: 6px; border: none; outline: none; background: #eee; color: #333;">
-            <button onclick="
-                const input = document.getElementById('linkPac');
-                input.select();
-                document.execCommand('copy');
-                this.innerText='Copiado!';
-                this.style.background='#27ae60';"
-                style="padding: 8px 16px; cursor: pointer; background: #a06e32; color: white; border: none; border-radius: 6px; font-weight: bold; transition: 0.2s;">
-                Copiar
-            </button>
-        </div>
-
-        <hr style="border: 0; height: 1px; background: #a06e32; margin: 15px 0;">
-
-        <button id="btnEncerrar" style="width: 100%; padding: 10px; cursor: pointer; background: #c0392b; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; transition: 0.2s;">
-            🛑 Encerrar Sessão
-        </button>
-    `;
-
-    // Lógica para abrir/fechar o painel ao clicar na logo
-    btnLogo.onclick = () => {
-        if (painel.style.display === 'none') {
-            painel.style.display = 'block';
-        } else {
-            painel.style.display = 'none';
-        }
-    };
-
-    containerTerap.appendChild(btnLogo);
-    containerTerap.appendChild(painel);
-    document.body.appendChild(containerTerap);
-
-    // Lógica do botão de Encerrar
-    document.getElementById('btnEncerrar').onclick = () => {
-        if(confirm("Tem certeza que deseja ENCERRAR esta sessão? O paciente perderá o acesso imediatamente.")) {
-            // Avisa o servidor para fechar a sala
-            socket.emit('encerrar_sessao', { sala: SALA_ID });
-        }
-    };
+    containerTerap.style.position = 'absolute'; containerTerap.style.top = '20px'; containerTerap.style.left = '20px'; containerTerap.style.display = 'flex'; containerTerap.style.flexDirection = 'column'; containerTerap.style.alignItems = 'flex-start'; containerTerap.style.gap = '10px';
+    const btnLogo = document.createElement('img'); btnLogo.src = '/static/assets/logo.jpg'; btnLogo.style.width = '70px'; btnLogo.style.height = '70px'; btnLogo.style.borderRadius = '50%'; btnLogo.style.cursor = 'pointer'; btnLogo.style.border = '3px solid #a06e32'; btnLogo.style.boxShadow = '0 4px 10px rgba(0,0,0,0.6)'; btnLogo.style.transition = 'transform 0.2s'; btnLogo.title = "Controles da Sessão";
+    btnLogo.onmouseenter = () => btnLogo.style.transform = 'scale(1.1)'; btnLogo.onmouseleave = () => btnLogo.style.transform = 'scale(1.0)';
+    const painel = document.createElement('div'); painel.style.display = 'none'; painel.style.background = 'rgba(0,0,0,0.85)'; painel.style.padding = '15px 20px'; painel.style.borderRadius = '10px'; painel.style.color = 'white'; painel.style.fontFamily = 'Arial'; painel.style.boxShadow = '0 6px 12px rgba(0,0,0,0.4)'; painel.style.border = '2px solid #a06e32';
+    painel.innerHTML = `<div style="font-size: 14px; margin-bottom: 8px;">Link de acesso do Paciente:</div><div style="display: flex; gap: 8px;"><input type="text" id="linkPac" value="${linkPaciente}" readonly style="padding: 8px; width: 250px; border-radius: 6px; border: none; outline: none; background: #eee; color: #333;"><button onclick="const input = document.getElementById('linkPac'); input.select(); document.execCommand('copy'); this.innerText='Copiado!'; this.style.background='#27ae60';" style="padding: 8px 16px; cursor: pointer; background: #a06e32; color: white; border: none; border-radius: 6px; font-weight: bold; transition: 0.2s;">Copiar</button></div><hr style="border: 0; height: 1px; background: #a06e32; margin: 15px 0;"><button id="btnEncerrar" style="width: 100%; padding: 10px; cursor: pointer; background: #c0392b; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; transition: 0.2s;">🛑 Encerrar Sessão</button>`;
+    btnLogo.onclick = () => { painel.style.display = painel.style.display === 'none' ? 'block' : 'none'; };
+    containerTerap.appendChild(btnLogo); containerTerap.appendChild(painel); document.body.appendChild(containerTerap);
+    document.getElementById('btnEncerrar').onclick = () => { if(confirm("Tem certeza que deseja ENCERRAR esta sessão? O paciente perderá o acesso imediatamente.")) socket.emit('encerrar_sessao', { sala: SALA_ID }); };
 }
