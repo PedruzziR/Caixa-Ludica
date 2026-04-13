@@ -59,9 +59,12 @@ let posAncoraTela = {x: 0, y: 0};
 let propX = 0.5;
 let propY = 0.5;
 
-// Variáveis para Rolagem por Toque no Tablet
+// Estados para controle de toque inteligente no Baú
 let estaArrastandoBau = false;
+let decidiuMovimentoBau = null; // 'scroll' ou 'grab'
+let itemPotencialBau = null;
 let xIncialToqueBau = 0;
+let yInicialToqueBau = 0;
 
 // =======================================================
 // 3. CLASSE MINIATURA
@@ -185,7 +188,7 @@ function sincronizarServidor() {
 }
 
 // =======================================================
-// 5. CARREGAMENTO DO BAÚ (COM CATEGORIAS E ABAS)
+// 5. CARREGAMENTO DO BAÚ (CATEGORIAS ATUALIZADAS)
 // =======================================================
 const configItens = [
     { nome: "bebe", cat: "Pessoas" }, { nome: "bebe1", cat: "Pessoas" }, 
@@ -282,6 +285,7 @@ function iniciarInteracao(e) {
     const pos = getMousePos(e);
 
     if (e.type === 'touchstart' || e.button === 0) {
+        // --- 1. NAVEGAÇÃO E BOTÕES ---
         let clicouNav = false;
         if (abaAtual === "Casa Inteira") {
             for (const [nome, quad] of Object.entries(quadrantes)) {
@@ -298,11 +302,9 @@ function iniciarInteracao(e) {
         }
         if (clicouNav) return;
 
-        let clicouBotaoAcao = false;
         if (itemSelecionado) {
             for (const [nomeBtn, rectBtn] of Object.entries(botoesAcao)) {
                 if (collidePoint(rectBtn, pos.x, pos.y)) {
-                    clicouBotaoAcao = true;
                     if (nomeBtn === "Cópia" && !itemSelecionado.travado) {
                         const nova = itemSelecionado.copiar(); listaMiniaturasCena.push(nova); itemSelecionado = nova;
                     } else if (nomeBtn === "Virar" && !itemSelecionado.travado) {
@@ -314,22 +316,20 @@ function iniciarInteracao(e) {
                     } else if (nomeBtn === "Travar") {
                         itemSelecionado.travado = !itemSelecionado.travado;
                     }
-                    sincronizarServidor(); break;
+                    sincronizarServidor(); return;
                 }
             }
         }
-        if (clicouBotaoAcao) return;
 
+        // --- 2. TRANSFORMAÇÕES NA CENA ---
         if (itemSelecionado && !itemSelecionado.travado) {
             const rectItem = itemSelecionado.obterRectTela(abaAtual);
-            const cx = rectItem.x + rectItem.w / 2; const cy = rectItem.y - 20;
-            if (Math.hypot(pos.x - cx, pos.y - cy) <= 15) {
+            if (Math.hypot(pos.x - (rectItem.x + rectItem.w/2), pos.y - (rectItem.y - 20)) <= 15) {
                 itemRotacionando = itemSelecionado; offsetAnguloMouse = Math.atan2(pos.y - (rectItem.y + rectItem.h/2), pos.x - (rectItem.x + rectItem.w/2)) * 180 / Math.PI; return;
             }
             const pontos = itemSelecionado.obterRectsPontosControle(abaAtual);
             for (const [pType, pRect] of Object.entries(pontos)) {
-                const areaToque = { x: pRect.x - 25, y: pRect.y - 25, w: pRect.w + 50, h: pRect.h + 50 };
-                if (collidePoint(areaToque, pos.x, pos.y)) {
+                if (collidePoint({ x: pRect.x - 25, y: pRect.y - 25, w: pRect.w + 50, h: pRect.h + 50 }, pos.x, pos.y)) {
                     itemRedimensionando = itemSelecionado; pontoControleAtivo = pType;
                     if (pType === "top_left") posAncoraTela = {x: rectItem.x + rectItem.w, y: rectItem.y + rectItem.h};
                     else if (pType === "top_right") posAncoraTela = {x: rectItem.x, y: rectItem.y + rectItem.h};
@@ -340,7 +340,8 @@ function iniciarInteracao(e) {
             }
         }
 
-        let pegou = false;
+        // --- 3. SELEÇÃO DE ITENS NA CENA ---
+        let pegouNaCena = false;
         for (let i = listaMiniaturasCena.length - 1; i >= 0; i--) {
             const item = listaMiniaturasCena[i]; const rectItem = item.obterRectTela(abaAtual);
             if (collidePoint(rectItem, pos.x, pos.y)) {
@@ -349,47 +350,43 @@ function iniciarInteracao(e) {
                     itemArrastado = item; propX = (pos.x - rectItem.x) / rectItem.w; propY = (pos.y - rectItem.y) / rectItem.h;
                     listaMiniaturasCena.splice(i, 1); listaMiniaturasCena.push(item);
                 }
-                pegou = true; break;
+                pegouNaCena = true; break;
             }
         }
+        if (pegouNaCena) return;
 
-        if (!pegou) {
-            let clicouAbaBau = false;
-            let xAba = 100; const yAba = Y_BAU - 5;
-            for (const cat of categoriasBau) {
-                ctx.font = "bold 16px Arial";
-                const wAba = ctx.measureText(cat).width + 30;
-                const rectAba = { x: xAba, y: yAba, w: wAba, h: 30 };
-                if (collidePoint(rectAba, pos.x, pos.y)) {
-                    abaBauAtual = cat; scrollBau = 0; clicouAbaBau = true; break;
-                }
-                xAba += wAba + 5;
+        // --- 4. ÁREA DO BAÚ (Logística Inteligente) ---
+        // Clique nas ABAS
+        let xAba = 100; const yAba = Y_BAU - 5;
+        for (const cat of categoriasBau) {
+            ctx.font = "bold 16px Arial";
+            const wAba = ctx.measureText(cat).width + 30;
+            if (collidePoint({ x: xAba, y: yAba, w: wAba, h: 30 }, pos.x, pos.y)) {
+                abaBauAtual = cat; scrollBau = 0; return;
             }
-            if (clicouAbaBau) return;
+            xAba += wAba + 5;
+        }
 
-            let clicouItemBau = false;
+        // Se o toque começou na esteira dos objetos (Faixa Branca)
+        if (pos.x >= 100 && pos.y >= Y_BAU + 25) {
+            estaArrastandoBau = true;
+            decidiuMovimentoBau = null; 
+            xIncialToqueBau = pos.x;
+            yInicialToqueBau = pos.y;
+            itemPotencialBau = null;
+
+            // Identifica qual item está DEBAIXO do dedo, mas não pega ainda!
             const itensFiltrados = abaBauAtual === "Todos" ? itensBau : itensBau.filter(i => i.categoria === abaBauAtual);
             itensFiltrados.forEach((bauItem, i) => {
                 const posX = xInicial + (i * espacamento) + scrollBau;
                 if (posX > 80 && posX < LARGURA_V - 20) {
-                    const rectBau = { x: posX, y: Y_BAU + 40, w: TAMANHO_BAU, h: TAMANHO_BAU };
-                    if (collidePoint(rectBau, pos.x, pos.y)) {
-                        const comodoInicial = abaAtual === "Casa Inteira" ? "Sala" : abaAtual;
-                        const novoItem = new MiniaturaCena(bauItem.nome, bauItem.img, bauItem.proporcao, comodoInicial, 0, 0);
-                        listaMiniaturasCena.push(novoItem);
-                        itemArrastado = itemSelecionado = novoItem;
-                        propX = 0.5; propY = 0.5; clicouItemBau = true;
+                    if (collidePoint({ x: posX, y: Y_BAU + 40, w: TAMANHO_BAU, h: TAMANHO_BAU }, pos.x, pos.y)) {
+                        itemPotencialBau = bauItem;
                     }
                 }
             });
-
-            // Se o toque foi na área do baú mas NÃO pegou nenhum item, ativa a ROLAGEM lateral
-            if (!clicouItemBau && pos.y >= Y_BAU) {
-                estaArrastandoBau = true;
-                xIncialToqueBau = pos.x;
-            } else if (!clicouItemBau && pos.y < Y_BAU) {
-                itemSelecionado = null;
-            }
+        } else if (pos.y < Y_BAU) {
+            itemSelecionado = null;
         }
     }
 }
@@ -398,19 +395,37 @@ function moverInteracao(e) {
     if(e.type === 'touchmove') e.preventDefault(); 
     const pos = getMousePos(e);
 
-    // LÓGICA DE ROLAGEM POR TOQUE (TABLET)
+    // LÓGICA DE TOQUE NO BAÚ: Decidir entre Scroll ou Grab
     if (estaArrastandoBau) {
-        let deltaX = pos.x - xIncialToqueBau;
-        scrollBau += deltaX;
-        xIncialToqueBau = pos.x;
-        
-        // Mantém a rolagem dentro dos limites
-        const itensFiltrados = abaBauAtual === "Todos" ? itensBau : itensBau.filter(i => i.categoria === abaBauAtual);
-        const limiteDir = Math.min(0, LARGURA_V - (xInicial + itensFiltrados.length * espacamento + 50));
-        scrollBau = Math.max(Math.min(scrollBau, 0), limiteDir);
+        let dx = pos.x - xIncialToqueBau;
+        let dy = pos.y - yInicialToqueBau;
+
+        if (decidiuMovimentoBau === null) {
+            // Se moveu mais de 10px pro lado, vira Scroll
+            if (Math.abs(dx) > 12) decidiuMovimentoBau = 'scroll';
+            // Se moveu mais de 10px pra cima, vira Grab (pegar item)
+            else if (dy < -12) decidiuMovimentoBau = 'grab';
+        }
+
+        if (decidiuMovimentoBau === 'scroll') {
+            scrollBau += dx;
+            xIncialToqueBau = pos.x;
+            const itensFiltrados = abaBauAtual === "Todos" ? itensBau : itensBau.filter(i => i.categoria === abaBauAtual);
+            const limiteDir = Math.min(0, LARGURA_V - (xInicial + itensFiltrados.length * espacamento + 50));
+            scrollBau = Math.max(Math.min(scrollBau, 0), limiteDir);
+        } 
+        else if (decidiuMovimentoBau === 'grab' && itemPotencialBau) {
+            const comodoInicial = abaAtual === "Casa Inteira" ? "Sala" : abaAtual;
+            const novo = new MiniaturaCena(itemPotencialBau.nome, itemPotencialBau.img, itemPotencialBau.proporcao, comodoInicial, pos.x - TAMANHO_BAU/2, pos.y - TAMANHO_BAU/2);
+            listaMiniaturasCena.push(novo);
+            itemArrastado = itemSelecionado = novo;
+            propX = 0.5; propY = 0.5;
+            estaArrastandoBau = false; // Transfere o controle para o arrasto normal
+        }
         return; 
     }
 
+    // Transformações normais na cena
     if (itemRotacionando && !itemRotacionando.travado) {
         const rectAntigo = itemRotacionando.obterRectTela(abaAtual);
         const cAntigo = {x: rectAntigo.x + rectAntigo.w/2, y: rectAntigo.y + rectAntigo.h/2};
@@ -422,9 +437,7 @@ function moverInteracao(e) {
         if (abaAtual === "Casa Inteira") {
             const quad = quadrantes[itemRotacionando.comodo];
             itemRotacionando.xLocal += dx * (LARGURA_V / quad.w); itemRotacionando.yLocal += dy * (ALTURA_CENARIO / quad.h);
-        } else {
-            itemRotacionando.xLocal += dx; itemRotacionando.yLocal += dy;
-        }
+        } else { itemRotacionando.xLocal += dx; itemRotacionando.yLocal += dy; }
     }
     else if (itemArrastado && !itemArrastado.travado) {
         if (abaAtual === "Casa Inteira") {
@@ -442,7 +455,6 @@ function moverInteracao(e) {
     }
     else if (itemRedimensionando && !itemRedimensionando.travado) {
         const largNova = Math.abs(pos.x - posAncoraTela.x);
-        const oldScale = itemRedimensionando.escalaManual;
         itemRedimensionando.escalaManual = 1.0;
         const [largBaseRot] = itemRedimensionando.calcularTamanhoRotacionado(abaAtual);
         itemRedimensionando.escalaManual = Math.max(0.20, Math.min(3.00, largNova / Math.max(1, largBaseRot)));
@@ -454,9 +466,7 @@ function moverInteracao(e) {
             const [lComodo, aComodo] = itemRedimensionando.calcularTamanhoRotacionado(itemRedimensionando.comodo);
             itemRedimensionando.xLocal = (((tlX + fLarg/2) - quad.x) * (LARGURA_V / quad.w)) - (lComodo/2);
             itemRedimensionando.yLocal = (((tlY + fAlt/2) - quad.y) * (ALTURA_CENARIO / quad.h)) - (aComodo/2);
-        } else {
-            itemRedimensionando.xLocal = tlX; itemRedimensionando.yLocal = tlY;
-        }
+        } else { itemRedimensionando.xLocal = tlX; itemRedimensionando.yLocal = tlY; }
     }
 }
 
@@ -471,7 +481,7 @@ function finalizarInteracao(e) {
         }
     }
     itemArrastado = null; itemRedimensionando = null; pontoControleAtivo = null; itemRotacionando = null;
-    estaArrastandoBau = false; // Solta a rolagem do baú
+    estaArrastandoBau = false; decidiuMovimentoBau = null;
     if (teveAcao) sincronizarServidor();
 }
 
